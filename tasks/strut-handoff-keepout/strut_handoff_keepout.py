@@ -120,9 +120,39 @@ def _undisturbed(housing) -> bool:
     return moved <= HOUSING_MOVE_TOL and float(r[2, 2]) >= math.cos(HOUSING_TILT_TOL) and not turned
 
 
+# The keep-out is judged over the whole trial, not only at the end: a housing shoved more than 10 mm and pushed back
+# still counts as disturbed. The record is updated on every control step by success() and score() and restarts only in
+# the exact start state (strut on the rack, housing within 1 mm and 1 degree of its start), so every trial and every
+# epoch begins clean while a shove-and-return cannot clear it.
+_HISTORY = {"disturbed": False}
+
+
+def _at_start(objects) -> bool:
+    strut, housing = objects["strut"], objects["housing"]
+    on_rack = math.hypot(float(strut.pos[0]) - RACK[0], float(strut.pos[1]) - RACK[1]) <= 0.002 and abs(float(strut.low[2]) - (TOP + 0.001)) <= 0.002
+    r = _rot(housing.quat_xyzw)
+    home = math.hypot(float(housing.pos[0]) - HOUSING[0], float(housing.pos[1]) - HOUSING[1]) <= 0.001
+    yaw = abs(math.atan2(float(r[1, 0]), float(r[0, 0]))) % (math.pi / 2)
+    square = min(yaw, math.pi / 2 - yaw) <= math.radians(1.0) and float(r[2, 2]) >= math.cos(math.radians(1.0))
+    return bool(on_rack and home and square)
+
+
+def _track(objects) -> None:
+    if _at_start(objects):
+        _HISTORY["disturbed"] = False
+    elif not _undisturbed(objects["housing"]):
+        _HISTORY["disturbed"] = True
+
+
+def _calm(objects) -> bool:
+    """Undisturbed now and at every earlier step of the trial."""
+    return _undisturbed(objects["housing"]) and not _HISTORY["disturbed"]
+
+
 def success(objects) -> bool:
-    """The strut seated and the housing undisturbed, at rest; holds for 1 s."""
-    return _seated(objects["strut"]) and _undisturbed(objects["housing"])
+    """The strut seated and the housing never disturbed, at rest; holds for 1 s."""
+    _track(objects)
+    return _seated(objects["strut"]) and _calm(objects)
 
 
 def distance(objects) -> float:
@@ -133,9 +163,11 @@ def distance(objects) -> float:
 
 def score(objects) -> float:
     """1.0 seated with the housing undisturbed; 0.5 resting on the cradle with the housing undisturbed; 0.25 seated or
-    cradled with the housing moved more than 10 mm or tilted more than 5 degrees; 0 for everything else."""
-    strut, housing = objects["strut"], objects["housing"]
-    seated, cradled, calm = _seated(strut), _cradled(strut), _undisturbed(housing)
+    cradled with the housing moved more than 10 mm, tilted more than 5 degrees or turned more than 5 degrees at any time
+    during the trial, even if it was pushed back afterwards; 0 for everything else."""
+    _track(objects)
+    strut = objects["strut"]
+    seated, cradled, calm = _seated(strut), _cradled(strut), _calm(objects)
     if seated and calm:
         return 1.0
     if cradled and calm:
@@ -270,9 +302,30 @@ def self_test(ObjectState=None):
         "one end on a disc, the other on the table": ({"strut": strut(*SEAT, TOP, pitch=math.atan2(0.010, 0.140)), "housing": housing()}, 0.0, False),
     }
     for name, (st, want, want_success) in cases.items():
-        got, got_success = score(st), success(st)
+        _HISTORY["disturbed"] = False
+        got_success = success(st)
+        got = score(st)
         assert abs(got - want) < 1e-9 and got_success == want_success, (name, got, got_success, want, want_success)
-    return len(cases)
+
+    start = {"strut": on_rack, "housing": housing()}
+    shoved = {"strut": strut(*CRADLE, CRADLE_BOTTOM), "housing": housing(dy=-0.015)}
+    pushed_back = {"strut": strut(*CRADLE, CRADLE_BOTTOM), "housing": housing(dx=0.002)}
+    done = {"strut": seated, "housing": housing(dx=0.002)}
+    sequences = {
+        "clean run": ([start, {"strut": cradled, "housing": housing()}, {"strut": seated, "housing": housing()}], 1.0, True),
+        "housing shoved 15 mm, pushed back, strut seated": ([start, shoved, pushed_back, done], 0.25, False),
+        "housing shoved and pushed back, strut left on the cradle": ([start, shoved, pushed_back], 0.25, False),
+        "housing tipped and stood back up": ([start, {"strut": on_rack, "housing": housing(tilt=math.radians(30))}, {"strut": seated, "housing": housing()}], 0.25, False),
+        "shoved, then back in the exact start state, then a clean run": ([start, shoved, start, {"strut": seated, "housing": housing()}], 1.0, True),
+    }
+    for name, (steps, want, want_success) in sequences.items():
+        _HISTORY["disturbed"] = False
+        for st in steps:
+            got_success = success(st)
+            got = score(st)
+        assert abs(got - want) < 1e-9 and got_success == want_success, (name, got, got_success, want, want_success)
+    _HISTORY["disturbed"] = False
+    return len(cases) + len(sequences)
 
 
 if __name__ == "__main__":

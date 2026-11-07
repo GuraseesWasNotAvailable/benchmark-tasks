@@ -8,10 +8,10 @@ Files in this folder: `task.json`, `oru_bay_swap.py` (scene, success, partial cr
 
 Built from the program's Brev launchable (Isaac Lab-Arena 0.3.1, Isaac Sim 6.1, L40S). Versions used for the submitted runs:
 
-- inspect-robots 0.60.0 (`inspect-robots --version`)
+- inspect-robots 1.0.0 (`inspect-robots --version`)
 - yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
 - inspect-robots-dream 0.1.0, Dream checkpoint `dreamlabs/dream-1-beta`
-- task file SHA-256, first 12 hex: 5791017ece79 (`sha256sum oru_bay_swap.py | cut -c1-12`; equals `eval.environment_revision` in both logs)
+- task file SHA-256, first 12 hex: 2688aa1b945e (`sha256sum oru_bay_swap.py | cut -c1-12`; equals `eval.environment_revision` in both logs)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env`. The Dream key sits in `~/.dreamlabs/credentials`.
 
@@ -23,7 +23,7 @@ From the root of this repository, with the yam-arena package importable (on the 
 python tasks/oru-bay-swap/oru_bay_swap.py
 ```
 
-It replays both arms' plans through the kinematics at 20 Hz, asserts every joint stays inside the URDF limits with an IK error under 0.5 mm, and asserts the scoring ladder on hand-built states (start 0, red out 0.25, red lying 0, red stowed 0.5, spare seated 0.5 or 0.75, done 1.0, a unit in a pocket corner or upside down still seated, a unit held in the air never credited).
+It replays both arms' plans through the kinematics at 20 Hz, asserts every joint stays inside the URDF limits with an IK error under 0.5 mm, and asserts the scoring ladder on hand-built states (start 0, red out 0.25, red lying 0, red stowed 0.5, spare seated 0.5 or 0.75, done 1.0, a unit in a pocket corner or upside down still seated, a unit held in the air never credited; a spare seated before the red unit is stowed capped at 0.5, also across a sequence of states).
 
 ## Run and score one Dream-1 trial
 
@@ -54,13 +54,13 @@ The demo is `demo()` in the task file, open loop and deterministic: the left arm
 ## Run limit, runtime and seeds
 
 - Run limit: 2,400 control steps at 20 Hz (120 s of simulated time), `--max-steps 2400` above, recorded as `eval.max_steps`.
-- Runtime per trial on an L40S: Dream-1 about 8 min wall clock for the submitted 2,400-step trial (Dream round trips pause the simulator); the demo about 1 min; the first run after boot adds about 4 to 6 min of Isaac Sim warm-up.
+- Runtime per trial on an L40S: Dream-1 about 11 min wall clock for the submitted 2,400-step trial (Dream round trips pause the simulator); the demo about 1 min; the first run after boot adds about 4 to 6 min of Isaac Sim warm-up.
 - Seeds: `--seed 0` (the inspect-robots default) for every submitted run; `-E object_jitter=0` fixes the layout. Dream-1 is a hosted model without a seed, so its trials are not bitwise reproducible; the demo is.
 
 ## Submitted videos and scores
 
-- Dream-1 run: log `adhoc_7e6fff60.json`, trial `scene-0-e0`, `task_score = 0.0`, ended by `max_steps` after 2400 steps.
-- Demo: log `adhoc_f4a3a653.json`, trial `scene-0-e0`, `task_score = 1.0`, ended by `success` after 391 steps.
+- Dream-1 run: log `adhoc_edaee3e7.json`, trial `scene-0-e0`, `task_score = 0.0`, ended by `max_steps` after 2400 steps.
+- Demo: log `adhoc_57d07652.json`, trial `scene-0-e0`, `task_score = 1.0`, ended by `success` after 391 steps.
 - Setup screenshot: frame 0 of the top camera, from the demo command with `-E cam_width=640 -E cam_height=360 --max-steps 1`.
 
 Videos were rendered with `inspect-robots video <log>` (one H.264 MP4 per camera in `stats.frames_dir`; the uploaded file is the `top_cam` stream) and the screenshot with `ffmpeg -y -i "<frames>/<trial>_top_cam.mp4" -frames:v 1 setup.png`. The screenshot is rendered at 640 x 360 so the pocket walls are legible; both scored runs and their videos are at 320 x 176.

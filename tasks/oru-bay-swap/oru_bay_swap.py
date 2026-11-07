@@ -103,9 +103,30 @@ def _out_of_bay(state) -> bool:
     return math.hypot(float(state.pos[0]) - BAY[0], float(state.pos[1]) - BAY[1]) > OUT_OF_BAY
 
 
+# The order rule needs history: whether the red unit was stowed before the spare was seated. It is kept here and
+# updated on every control step by success() and score(); it restarts whenever the red unit is back in the bay, which
+# is the start state, so every trial (and every epoch) begins clean.
+_ORDER = {"stowed": False, "out_of_order": False}
+
+
+def _track(objects) -> None:
+    red, spare = objects["unit_red"], objects["unit_spare"]
+    if not _out_of_bay(red):
+        _ORDER["stowed"] = False
+        _ORDER["out_of_order"] = False
+        return
+    if _seated(red, SLOT, False):
+        _ORDER["stowed"] = True
+    if _seated(spare, BAY, True) and not _ORDER["stowed"]:
+        _ORDER["out_of_order"] = True
+
+
 def success(objects) -> bool:
-    """The spare is seated in the bay and the red unit is seated in the return slot; holds for 1 s."""
-    return _seated(objects["unit_spare"], BAY, True) and _seated(objects["unit_red"], SLOT, False)
+    """The spare is seated in the bay and the red unit is seated in the return slot, the red unit stowed first; holds
+    for 1 s."""
+    _track(objects)
+    done = _seated(objects["unit_spare"], BAY, True) and _seated(objects["unit_red"], SLOT, False)
+    return done and not _ORDER["out_of_order"]
 
 
 def distance(objects) -> float:
@@ -119,7 +140,14 @@ def distance(objects) -> float:
 def score(objects) -> float:
     """End-state ladder. 0 while the red unit is still in the bay. Red out and standing on the table: 0.25. Red
     seated in the slot: 0.5. Spare seated in the bay: 0.5, or 0.75 if the red unit is standing, 1.0 if the red unit
-    is seated in the slot. A lifted, lying or tilted unit earns nothing."""
+    is seated in the slot. A lifted, lying or tilted unit earns nothing. Order: if the spare was seated in the bay
+    before the red unit had been seated in the slot, the score is capped at 0.5."""
+    _track(objects)
+    base = _ladder(objects)
+    return min(base, 0.5) if _ORDER["out_of_order"] else base
+
+
+def _ladder(objects) -> float:
     red, spare = objects["unit_red"], objects["unit_spare"]
     if not _out_of_bay(red):
         return 0.0
@@ -208,14 +236,14 @@ def self_test(ObjectState=None):
         "red out, standing": ({"unit_red": unit(0.18, 0.12), "unit_spare": on_pad}, 0.25, False),
         "red out, lying": ({"unit_red": unit(0.18, 0.12, tilt=math.pi / 2, z=TOP + 0.02), "unit_spare": on_pad}, 0.0, False),
         "red stowed": ({"unit_red": unit(*SLOT, yaw=math.pi / 2), "unit_spare": on_pad}, 0.5, False),
-        "spare seated, red standing": ({"unit_red": unit(0.18, 0.12), "unit_spare": unit(*BAY)}, 0.75, False),
+        "spare seated, red standing (seated before the red unit was stowed)": ({"unit_red": unit(0.18, 0.12), "unit_spare": unit(*BAY)}, 0.5, False),
         "spare seated, red lying": ({"unit_red": unit(0.18, 0.12, tilt=math.pi / 2, z=TOP + 0.02), "unit_spare": unit(*BAY)}, 0.5, False),
         "done": ({"unit_red": unit(*SLOT, yaw=math.pi / 2), "unit_spare": unit(*BAY)}, 1.0, True),
         "spare held in the air": ({"unit_red": unit(*SLOT, yaw=math.pi / 2), "unit_spare": unit(*BAY, z=TOP + 0.12, vel=(0, 0, 0.05))}, 0.5, False),
-        "red across the slot key": ({"unit_red": unit(*SLOT, yaw=0.0), "unit_spare": unit(*BAY)}, 0.75, False),
+        "red across the slot key": ({"unit_red": unit(*SLOT, yaw=0.0), "unit_spare": unit(*BAY)}, 0.5, False),
         "red 5 mm and 10 deg off": ({"unit_red": unit(SLOT[0] + 0.005, SLOT[1] - 0.002, yaw=math.pi / 2 + math.radians(10)), "unit_spare": unit(*BAY)}, 1.0, True),
-        "red 8 mm off": ({"unit_red": unit(SLOT[0] + 0.008, SLOT[1], yaw=math.pi / 2), "unit_spare": unit(*BAY)}, 0.75, False),
-        "red 12 deg off its key": ({"unit_red": unit(*SLOT, yaw=math.pi / 2 + math.radians(12)), "unit_spare": unit(*BAY)}, 0.75, False),
+        "red 8 mm off": ({"unit_red": unit(SLOT[0] + 0.008, SLOT[1], yaw=math.pi / 2), "unit_spare": unit(*BAY)}, 0.5, False),
+        "red 12 deg off its key": ({"unit_red": unit(*SLOT, yaw=math.pi / 2 + math.radians(12)), "unit_spare": unit(*BAY)}, 0.5, False),
         "red tilted 8 deg": ({"unit_red": unit(*SLOT, yaw=math.pi / 2, tilt=math.radians(8)), "unit_spare": unit(*BAY)}, 0.5, False),
         "spare left on pad": ({"unit_red": unit(*SLOT, yaw=math.pi / 2), "unit_spare": on_pad}, 0.5, False),
         "red beside the bay": ({"unit_red": unit(BAY[0], BAY[1] + 0.060), "unit_spare": on_pad}, 0.25, False),
@@ -225,9 +253,31 @@ def self_test(ObjectState=None):
         "red stacked on the seated spare": ({"unit_red": unit(*BAY, z=TOP + UNIT[2] * 1.5), "unit_spare": unit(*BAY)}, 0.0, False),
     }
     for name, (st, want, want_success) in cases.items():
-        got, got_success = score(st), success(st)
+        _ORDER.update(stowed=False, out_of_order=False)
+        got_success = success(st)
+        got = score(st)
         assert got == want and got_success == want_success, (name, got, got_success, want, want_success)
-    return len(cases)
+
+    start = {"unit_red": unit(*BAY), "unit_spare": on_pad}
+    red_out = {"unit_red": unit(0.18, 0.12), "unit_spare": on_pad}
+    stowed = {"unit_red": unit(*SLOT, yaw=math.pi / 2), "unit_spare": on_pad}
+    spare_first = {"unit_red": unit(0.18, 0.12), "unit_spare": unit(*BAY)}
+    done = {"unit_red": unit(*SLOT, yaw=math.pi / 2), "unit_spare": unit(*BAY)}
+    restowed_out = {"unit_red": unit(0.18, 0.12), "unit_spare": unit(*BAY)}
+    sequences = {
+        "in order: out, stowed, spare seated": ([start, red_out, stowed, done], 1.0, True),
+        "spare seated before the red unit is stowed": ([start, red_out, spare_first, done], 0.5, False),
+        "out of order, then reset to the start and redone in order": ([start, red_out, spare_first, done, start, red_out, stowed, done], 1.0, True),
+        "stowed first, red pulled back out, spare seated": ([start, stowed, restowed_out], 0.75, False),
+    }
+    for name, (steps, want, want_success) in sequences.items():
+        _ORDER.update(stowed=False, out_of_order=False)
+        for st in steps:
+            got_success = success(st)
+            got = score(st)
+        assert got == want and got_success == want_success, (name, got, got_success, want, want_success)
+    _ORDER.update(stowed=False, out_of_order=False)
+    return len(cases) + len(sequences)
 
 
 if __name__ == "__main__":

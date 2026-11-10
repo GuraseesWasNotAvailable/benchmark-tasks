@@ -1,0 +1,29 @@
+{
+  "title": "Zig-zag fold a four-panel array wing whose hinges fold alternate ways",
+  "category": "Impact on jobs",
+  "keywords": [
+    "zig-zag fold",
+    "alternating hinge directions",
+    "hinged panel chain",
+    "one-way hinge stops",
+    "accordion fold",
+    "folding rule",
+    "folding screen",
+    "bimanual",
+    "handover",
+    "avionics technician",
+    "aerospace technician",
+    "solar array wing",
+    "ground-test model",
+    "linkkit"
+  ],
+  "instruction": "Fold the four-panel array wing flat into one stack on the stowage plate, panels square over each other, then let go.",
+  "context": "A chain of panels whose hinges each fold only one way, the direction alternating from hinge to hinge, packs flat only as a zig-zag. Folding carpenter's rules, folding exhibition screens and satellite solar-array wings fold this way; avionics (O*NET 49-2091) and aerospace technicians (17-3021) fold the wings' ground-test models onto their stowage plates. Folding every hinge the same way from the tip jams on the second hinge's stop. Unlike closing a carton's parallel flaps in order (TK-LABKXT), unfolding a two-section ramp (TK-W67CJE) or lowering one hinged cover (TK-9JFBH4), this is a serial chain, so which side turns over must be chosen at each hinge, read from the face its knuckle is on. A panel let fall onto the stack cracks cells, so each one is lowered under control. A 1 g bench model at about 1/12 scale; no microgravity is claimed.",
+  "setup": "Station table; positions in metres, x forward from the arm bases, y to the robot's left, z up; the table top is at z 0.7475. (1) Stowage plate, fixed: grey anodised aluminium block, sRGB (0.55, 0.56, 0.58), 80 x 50 x 20 mm, 216 g, x 0.180 to 0.260, centred on y 0, on the table. (2) Array wing, a four-panel ground-test model: panels P1 to P4, each 80 mm along the wing (x) by 60 mm across (y) by 4 mm, 20 g, a 3 mm white composite back, sRGB (0.92, 0.92, 0.90), under a 1 mm dark blue cell face, sRGB (0.08, 0.12, 0.35), friction 0.5/0.4. P1 is bolted cells up on the stowage plate (x 0.18 to 0.26, z 0.7675 to 0.7715); P2, P3 and P4 lie deployed beyond it in a line, cells up, at x 0.26 to 0.34, 0.34 to 0.42 and 0.42 to 0.50, overhanging the rail 5 mm each side. Steel piano hinges along the 60 mm edges, 0.003 N m friction, no springs: h1 (P1-P2) and h3 (P3-P4) have the knuckle on the cell face and fold up to 180 deg cells to cells; h2 (P2-P3) has it on the back and folds up to 180 deg back to back; each stops 12 deg past flat the other way. Each hinge shows as a steel knuckle, 3.5 mm across, with a 5 mm leaf on each panel on its knuckle face; on the other face the panels' 1.5 mm borders show as a seam, white between the cell faces and grey between the backs (looks only, no colliders). (3) Ground-support rail, fixed: grey aluminium bar with a PTFE top strip, sRGB (0.40, 0.41, 0.43), 245 x 50 x 20 mm, 660 g, friction 0.25/0.2, x 0.262 to 0.507, centred on y 0, its top level with the plate's.",
+  "scoring": "Measured every control step from reset: the three hinge angles (h1 and h3: 0 flat, +180 folded cells to cells; h2: 0 flat, -180 folded back to back), every panel's turn rate and speed from its pose change between control steps, and both grippers' pad clearance to the wing and rail and their speed. Whole-run record: a linkkit History updated every control step and cleared only by the simulator reset, so lifting a panel and lowering it again never clears a fall. Gate, any time in the run, gives 0: any panel turned faster than 180 deg/s (let fall onto the stack, or P3 flung over onto P2's back as P2 is lifted; the scripted demo peaks at 84 deg/s; a panel let go at 125 deg reaches 290 to 370 deg/s). Ladder: 0.25 = at some time h1 >= 170 and h2 <= -170 together (P2 turned over onto P1 with P3 back to back on it); 0.5 = at some time, with that held, h3 >= 95 (P4 turned past upright toward the stack); 0.75 = at the end one flat stack, h1 >= 177, h2 <= -177 and h3 >= 177 (each panel within 3 deg, square over P1 by its hinges, stack top 16 mm above the plate); 1.0 = that stack still (every panel under 3 deg/s and 3 mm/s) for the last 1 s, and the release gate: every pad point of both grippers at least 30 mm from the wing and rail and both grippers moving under 5 mm/s for the last 1 s. Success (1.0) must hold 1 s. Real trial: a protractor or feeler gauge at each hinge, a top photo for squareness, a 30 fps video for the panel rates.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Unfold the wing flat along the rail, cells up: lift P4 off P3, then P2 (with P3) off P1, and lay P2, P3 and P4 in line on the rail with every hinge straight (a straightedge along the backs). P1 stays bolted to the stowage plate; the plate and rail are fixed on taped outlines.",
+  "fidelity": "A 1 g bench model, not flight hardware, no microgravity claimed: rigid 4 mm panels about 1/12 of a real panel, piano hinges with 0.003 N m friction and no deployment springs, dampers, snubbers or hold-downs. Hinge stops are joint limits; knuckles, leaves and borders are drawn only, with no colliders. Panels sharing a hinge do not collide, so a stacked panel rests on its hinge's 180 deg limit; others collide. The plate and rail are raised 20 mm so the turning hand clears the table.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-58R8BN"
+}

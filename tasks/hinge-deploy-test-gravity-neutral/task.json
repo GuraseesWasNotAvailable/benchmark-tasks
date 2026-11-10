@@ -19,6 +19,6 @@
   "run_limit": "1,200 steps (1 minute at 20 Hz)",
   "reset_notes": "Nothing is consumed. Swing the panel back flat onto the cradle (lift the latch pawl first) and push the red pin home through the bracket into the boss's slot, 6 mm engaged, knob 47 mm past the cradle's end. Turn the crank clockwise until the tilt table stops at 0 deg (top face up, hinge axis horizontal), then on until the arm points toward the robot. The stand is fixed on taped outlines and needs no reset.",
   "fidelity": "Rigid links. The worm is a stiff tilt drive whose target follows the crank angle (12:1, 30 deg per turn, coarse to fit the run; it never back-drives the crank; past 0 or 95 deg the crank turns freely). The hold-down is a hinge brake released once the pin is 8 mm out, not a pin load. Linear torsion spring and damper; the latch is a pawl limit. No offload rig. A 1 g bench analogue; no microgravity is claimed.",
-  "scores": "Scripted demo (python linkdemo.py task.py demo_out): 1.0, success at step 653 of 1,200, on task.py 1224a2a8fee2. Cheat variants in Isaac Sim, same file: nothing 0.0, as_delivered 0.0 (gate), help_up 0.0 (gate), pull_then_turn 0.0 (gate), partial_tilt 0.0 (gate). Dream-1 run (1,200 steps, same file): 0.0 (max_steps).",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
   "media": "M-NYTYVR"
 }

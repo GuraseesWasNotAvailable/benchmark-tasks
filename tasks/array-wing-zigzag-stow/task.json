@@ -3,19 +3,15 @@
   "category": "Impact on jobs",
   "keywords": [
     "zig-zag fold",
+    "accordion fold",
     "alternating hinge directions",
     "hinged panel chain",
-    "one-way hinge stops",
-    "accordion fold",
     "folding rule",
-    "folding screen",
-    "bimanual",
-    "handover",
+    "solar array wing",
     "avionics technician",
     "aerospace technician",
-    "solar array wing",
-    "ground-test model",
-    "linkkit"
+    "bimanual",
+    "handover"
   ],
   "instruction": "Fold the four-panel array wing flat into one stack on the stowage plate, panels square over each other, then let go.",
   "context": "A chain of panels whose hinges each fold only one way, the direction alternating from hinge to hinge, packs flat only as a zig-zag. Folding carpenter's rules, folding exhibition screens and satellite solar-array wings fold this way; avionics (O*NET 49-2091) and aerospace technicians (17-3021) fold the wings' ground-test models onto their stowage plates. Folding every hinge the same way from the tip jams on the second hinge's stop. Unlike closing a carton's parallel flaps in order (TK-LABKXT), unfolding a two-section ramp (TK-W67CJE) or lowering one hinged cover (TK-9JFBH4), this is a serial chain, so which side turns over must be chosen at each hinge, read from the face its knuckle is on. A panel let fall onto the stack cracks cells, so each one is lowered under control. A 1 g bench model at about 1/12 scale; no microgravity is claimed.",

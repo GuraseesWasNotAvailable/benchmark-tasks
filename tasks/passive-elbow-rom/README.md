@@ -199,6 +199,6 @@ sits on its marks. The torso, head, left arm and legs are bolted and need no res
 
 ## Licence
 
-MIT. Copyright (c) 2026 Gurasees Singh Dhanoa. `linkkit.py` and `linkdemo.py` carry the full MIT text; `task.py` and
+MIT. Copyright (c) 2026 the task authors. `linkkit.py` and `linkdemo.py` carry the full MIT text; `task.py` and
 `tests/test_scoring.py` carry the SPDX identifier. This is our own code, written with public Isaac Lab and USD Physics
 techniques; it copies no code from other tasks in this repository.

@@ -210,6 +210,10 @@ The demo video is `demo_out/top_cam.mp4` (with `left_cam.mp4` and `right_cam.mp4
 `demo_out/setup.png` (frame 0 of the top camera). Make the Dream-1 run on this exact `task.py` after a 40-step probe
 of the instruction (`--max-steps 40`, no frames) to rule out a refusal.
 
+## Measuring the jam gate in a real trial
+
+a dial indicator on rod B's far end and a top photo of the lever; for the jam gate, a degree scale on the crank hub (5 deg marks, 0.44 mm of screw travel each) and a mm scale beside the carriage, filmed from above at 60 fps. Each frame the screw position is the crank angle times 32 mm per turn; a carriage mark 1.5 mm or more from it for 9 frames in a row (0.15 s) zeros the run, and the clutch's click (3 mm of slip) always lies past that gate.
+
 ## Materials
 
 - Base, fixed: a grey aluminium tooling plate 130 x 400 x 10 mm (3.0 kg with its blocks) centred at (0.310, 0.040),

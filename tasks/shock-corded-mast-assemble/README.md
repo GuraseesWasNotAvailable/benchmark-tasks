@@ -218,6 +218,10 @@ the mast for the bend, a top photo for the mast in both slots, and the video for
   `eval.environment_revision` in its log). Dream-1 did not refuse the instruction and ran the full 1,200 steps:
   `task_score = 0.0`, ended by `max_steps`.
 
+## Building the snug fit
+
+The last 15 mm of each ferrule holds a compliant insert: a black nitrile rubber sleeve (Shore 60A, 1.1 mm walls) bonded inside the bore, which narrows it to an 11.8 mm square opening the 12 mm spigot squeezes into, lightly greased with silicone. Check every joint with a 0 to 10 N spring scale pulling the spigot along the axis: it must start to move at 3 N (2.7 to 3.3) and keep sliding at 2.5 N (2.2 to 2.8); trim or replace the sleeve until it does. So the insert holds the spigot until 3 N net acts on it and drags at 2.5 N while it slides. The simulator models the insert as the 3 N breakaway and 2.5 N sliding resistance above.
+
 ## Materials
 
 - Mast: three sections of green glass-fibre tube, sRGB (0.20, 0.50, 0.22), 18 mm square, 130 mm long, 45 g each,

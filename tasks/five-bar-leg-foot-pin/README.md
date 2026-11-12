@@ -15,7 +15,7 @@ ends together, equal and opposite.
 
 What is new is that both parts are kinematically constrained and passive: each end hangs on its own two-joint chain,
 can move only along that chain's joint path, gives way to any push, and cannot reach the other at full stretch.
-Unlike TK-VL43QQ (one free link fitted onto a fixed pin, where the skill is choosing the closure branch), nothing here
+Unlike nothing here
 is fixed to work against; unlike TK-K65XCN (two connectors on loose cords) or TK-CGNU3G (two arch halves set down
 together), neither part can be lifted free and placed.
 

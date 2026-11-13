@@ -1,0 +1,28 @@
+{
+  "title": "Lever a door's hinge side up with a flat pry bar and slide a packer under it",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "pry bar",
+    "lever",
+    "fulcrum",
+    "door",
+    "hinge",
+    "packer",
+    "shim",
+    "carpenter",
+    "maintenance",
+    "lift-off hinge",
+    "hold a gap open",
+    "linkkit"
+  ],
+  "instruction": "Fit the yellow packer under the hinge side of the door using the red pry bar, so the door rests on the packer, then let go.",
+  "context": "Carpenters (BLS 47-2031, about 900,000 US workers) and general maintenance and repair workers (49-9071, about 1.4 million) adjust sagging, rubbing doors as a regular duty. The fix is to lever the door's hinge side up on a flat pry bar and slide a plastic packer under it, so the door sits on the packer. One hand must hold the bar down, because the door settles back the moment the bar is let go, while the other slides the packer in.",
+  "setup": "Station table (stands in for the floor); positions in metres, x forward from the arm bases, y to the robot's left, z up; table top z 0.7475. (1) Cabinet door leaf: pine, natural wood colour sRGB (0.80, 0.62, 0.40), 28 x 350 x 500 mm, 2.5 kg, centred at x 0.300, y 0.000, bottom 4.5 mm above the floor, front face at x 0.286. Hung on two lift-off hinge pins in a jamb post (pine, dark brown (0.55, 0.40, 0.25), 40 x 20 x 520 mm, fixed, at y 0.175 to 0.195); the pins let the door slide 20 mm up (greased: 100 N s/m, 0.5 N) and its hinge washers stop it at 4.5 mm. (2) Flat pry bar: steel, red (0.80, 0.10, 0.10), 30 mm wide, 4 mm thick, 0.28 kg, friction 0.4/0.3: a 160 mm handle, a web and a 45 mm foot 3 mm thick bent down to the floor, pivoting about an axis along y at x 0.261, y 0.150, 40 mm above the floor, travel 0 to 20 deg; the foot lies 20 mm under the door's bottom edge, 1 mm below it. (3) Fulcrum: two grey steel cheek plates (0.55, 0.57, 0.60), 30 x 5 x 54 mm each, fixed, at x 0.246 to 0.276, y 0.1305 and 0.1695. (4) Packer: yellow PVC (0.95, 0.80, 0.10), 100 x 40 x 6 mm, 34 g, friction 0.5/0.4, on the floor, centre x 0.220, y 0.010, long side along x. No jitter.",
+  "scoring": "Whole-run record (linkkit History, updated every control step, cleared only by the simulator reset): door lift q over its washers; packer front end x, centre y, yaw, tilt, height; door speed; gripper clearances and speeds. 0: never door lifted 7 mm (gap 11.5 mm) with the packer's front end at 296 mm or more. 0.25: that happened, packer never fully under while the door was up. 0.5: packer seated while door lifted 7 mm (front end 306 to 345 mm, centre y 0 to 90 mm, yaw at most 12 deg, tilt at most 5 deg, within 1.5 mm of flat), but at the end the door does not rest on it (lift outside 0.8 to 3.5 mm, gap 5.3 to 8.0 mm). 0.75: seated, door resting on it, but door not still 1 s (2 mm/s) or a hand not released. 1.0: also released: every pad point of both grippers 30 mm or more from door, bar and packer and under 5 mm/s for 1 s. Real trial: tape for the packer's front end (20 to 59 mm past the door's front face) and centre; try square for yaw; feeler gauges for the 6 mm packer flat and the 5.3 and 8.1 mm door gap; 60 fps video with a mark on the door edge for the 7 mm lift, the 1 s stillness and the hands; ruler for 30 mm.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Pull the packer out and lay it on the floor in front of the door, centre 220 mm from the arm bases and 10 mm left of the midline, long side toward the door. Let the door down onto its hinge washers (a 4.5 mm feeler fits under both ends). Set the bar's foot 20 mm under the door with the handle up, the top of the foot touching the door (bar at about 1 deg). The fulcrum and jamb stay bolted.",
+  "fidelity": "Cabinet-size door (500 mm tall) so it stays inside the 0.35 m reach; its width, thickness and 2.5 kg are a real cabinet door's. The table stands in for the floor; the hinge pins are a frictional vertical slide, so the door cannot tilt. Bar and packer are rigid, with no wood or plastic compliance; the bar's fulcrum is a bolted pivot, not a block it rests on.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-QPS8DQ"
+}

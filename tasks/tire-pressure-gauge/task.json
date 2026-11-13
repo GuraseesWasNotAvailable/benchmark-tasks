@@ -1,0 +1,60 @@
+{
+  "title": "Read a wheel's tyre pressure with a pencil gauge, then put the gauge back in its holder",
+  "category": "Societal relatability",
+  "keywords": "tyre pressure gauge, schrader valve, hand truck wheel, press and hold, seal, square contact, everyday maintenance, pencil gauge, valve stem, leak",
+  "instruction": "Read the tyre pressure of the wheel with the pencil gauge, then put the gauge back upright in its holder.",
+  "context": "Checking tyre pressure is a routine chore for anyone who owns a car, bicycle, wheelbarrow or hand truck, and a courier or warehouse picker does it on a sack-truck wheel that has gone soft. A pencil gauge only reads when its chuck is pressed flat and firm onto the valve; pressed at an angle, air hisses out and it reads low. The robot takes the gauge from its holder, presses it on, holds it, and puts it back.",
+  "setup": [
+    {
+      "object": "wheel",
+      "type": "10 inch pneumatic hand-truck wheel, fixed",
+      "size": "tyre 260 mm across x 70 mm wide, rim face flat",
+      "material": "black rubber tyre on steel rim",
+      "mass": "1.4 kg",
+      "colour": "black",
+      "position": "lying flat, axle at x 0.275 m, y -0.100 m on the table (cm from the arm-base midpoint: 27.5, -10.0), chocked with two wooden blocks so it cannot move; tyre at 35 psi"
+    },
+    {
+      "object": "valve stem",
+      "type": "Schrader valve stem",
+      "size": "8.5 mm diameter, 19 mm tall above the rim face",
+      "material": "brass",
+      "mass": "10 g",
+      "colour": "brass",
+      "position": "55 mm from the axle on the upward rim face, at x 0.220 m, y -0.100 m"
+    },
+    {
+      "object": "seat collar",
+      "type": "spring-loaded sealing collar around the valve stem",
+      "size": "26 mm square, 3 mm tall, 9 mm square opening round the stem, 2.5 mm travel",
+      "material": "red anodised aluminium on a 0.8 N/mm compression spring",
+      "mass": "20 g",
+      "colour": "red",
+      "position": "on the rim face around the stem, top 3 mm above the rim face (spring rate checked by pushing it with a kitchen scale: 2.0 N at 2.5 mm)"
+    },
+    {
+      "object": "pencil tyre gauge",
+      "type": "stick tyre gauge",
+      "size": "124 mm long, 12 mm square barrel, 20 mm square chuck head with a 12 mm square 24 mm deep socket, 5 mm square stick, 70 mm of stick travel marked 1 mm per psi",
+      "material": "steel and brass, rubber gasket in the head",
+      "mass": "60 g",
+      "colour": "steel with a yellow stick",
+      "position": "upright in its holder at x 0.300 m, y -0.300 m, head bottom 8 mm above the table; the stick starts in at 0 mm and stays where it stops (0.5 N of friction, checked by pulling the stick with a spring scale)"
+    },
+    {
+      "object": "gauge holder",
+      "type": "fixed pocket stand",
+      "size": "50 x 50 mm base, 25 mm square pocket 18 mm deep, 8 mm floor",
+      "material": "grey ABS",
+      "mass": "0.5 kg",
+      "colour": "grey",
+      "position": "x 0.300 m, y -0.300 m, screwed to the table"
+    }
+  ],
+  "scoring": "Ladder (the first rung that holds, checked every step; run history is cleared only by the simulator reset): 0 unless a sealed press was held 1.5 s at any time; 0.4 sealed press held; 0.7 and the stick ends at 33 to 37 mm (33 to 37 psi); 1.0 and the gauge is back in its holder (within 6 mm across and 4 mm up, within 4 deg of upright) and still for 1 s, and both grippers are at least 30 mm clear of the gauge and moving under 10 mm/s for 1 s (release gate). A press is sealed when the collar is down 2 mm or more, the gauge axis is within 3 deg of the valve axis and its socket within 2 mm of the stem, continuously. A leaking press (collar down 1 mm or more but not sealed) draws the stick only to 12 mm. Real-trial measurement: stick reading on the 1 mm per psi marks with a steel rule at the end; the seal and its 1.5 s from a fixed side video at 30 frames per second with a plumb line and a 3 deg printed wedge on the frame, the collar depth from the same video against a printed 2 mm mark on the collar post; the gauge in its holder from a top photo with a 6 mm square drawn round the pocket.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Stick pushed back to 0 mm, gauge upright in its holder, collar released to its top, wheel and holder in their marked places. Run history is cleared only by the simulator reset.",
+  "fidelity": "Rigid-body physics with a sprung collar and a friction-held sliding stick. The air seal is a rule: the stick is drawn out only while the collar is down 2 mm with the gauge square to the valve for 1.5 s, and a leaking press reads 12 psi. Real gaskets, tyre air flow and the valve core are not modelled; the collar stands in for the valve core and gasket seating force.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-DATPE2"
+}

@@ -1,0 +1,24 @@
+{
+  "title": "Take a drawer out of its slides by pressing two opposite-sense release levers while pulling",
+  "category": "Societal relatability",
+  "keywords": [
+    "bimanual",
+    "kitchen drawer",
+    "ball-bearing drawer slides",
+    "disconnect levers",
+    "remove a drawer",
+    "opposite-sense release",
+    "hold while pulling",
+    "home repair",
+    "linkkit"
+  ],
+  "instruction": "Take the drawer fully out of its slides and set it down on the table in front of the cabinet, then let go.",
+  "context": "Taking a kitchen or desk drawer out of its ball-bearing slides is a routine job when cleaning, painting or fixing a cabinet. Each slide has its own spring disconnect lever, and the two levers work in opposite senses: one is pushed up, the other pushed down. Both must be held while the drawer is drawn forward past its end stop. Working one lever leaves the other slide locked and the drawer jams at the stop. The robot needs a hand on each lever while it pulls.",
+  "setup": "Station table; positions in metres, x forward from the arm bases, y to the robot's left, z up; table top z 0.7475. (1) Drawer bay: plywood, sRGB (0.70, 0.55, 0.35), fixed to the table, 8 kg, 300 x 316 x 200 mm (x 0.4115 to 0.7115, y -0.158 to 0.158, z 0 to 0.200), standing on an 85 mm plinth; two steel ball-bearing slide members, sRGB (0.62, 0.63, 0.66), 250 x 12.7 x 35 mm at y +-0.1391, z 0.1325 above the table. (2) Drawer: 12 mm plywood, sRGB (0.86, 0.76, 0.56), 1.2 kg, 280 x 240 x 75 mm (front 240 x 60 mm, inset), bottom 6 mm, bottom 100 mm above the table, friction 0.5/0.4; two steel inner slide members 230 x 12.7 x 35 mm on its sides. It stands pulled out 199 mm (front face at x 0.2125), against the end stop at 200 mm, so the stop dog on each inner member sits at the stop. Slide friction 0.5 N and 3 N s/m. (3) Left disconnect lever (red, 20 g, ABS): a tab 35 x 25 x 3 mm under the left wall at drawer x 10 to 45 mm, y +120 to +145 mm, 12 to 9 mm below the drawer bottom, on a stem joined to the slide's inner member; pushed UP 6 mm against a 1.2 N/mm spring (5.4 N at the 4.5 mm that counts as pressed, 7.2 N at full travel). Above it a fixed 55 x 25 x 5 mm steel flange on the wall top (z 60 to 65 mm). Pad span from tab underside to flange top 77 mm. (4) Right lever (blue, 20 g): the mirror in sense: a tab 35 x 25 x 3 mm over the right wall at y -145 to -120 mm, 74 to 77 mm above the drawer bottom, pushed DOWN 6 mm against the same spring; below it a fixed 55 x 25 x 5 mm flange on the bottom edge. Span 77 mm. (5) Latch: the stop clears only while both levers are at 4.5 mm or more; once the dogs are past the stop by 4 mm the members run free to 340 mm from closed. Letting a lever go before that drops the latch back in. Verify on the real bench: hold either lever with a clamp and pull 30 N; the drawer must not pass the stop; with both pressed it must pass at under 5 N.",
+  "scoring": "Whole-run record at every control step, cleared only by the simulator reset (letting go, pushing the drawer back or starting again never clears it). Lever pressed: tab travel at least 4.5 mm (tab to flange gap 1.5 mm or less). Drawer extension: front-face travel from closed. 0: the two levers were never pressed at the same time. 0.25: both pressed together at some moment, but the drawer never went 215 mm or more from closed. 0.5: the drawer reached 215 mm, but at the end it is not 280 mm or more out and still. 0.75: at the end the drawer is 280 mm or more from closed and has been still (under 5 mm/s) for 1 s, but a gripper is not yet clear. 1.0: also both grippers have been 30 mm or more from every part of the drawer and moving under 10 mm/s for 1 s (release gate). Real-trial measurement: a side video at 30 fps and a tape on the bench top. The levers carry a printed 6 mm scale on the stem and a 1.5 mm gauge strip at the flange, read frame by frame (pressed when the gap is within the 1.5 mm strip). Extension is read from the front face against the tape; stillness is no tape movement over 30 frames; clearance by a 30 mm spacer card passed around each gripper and the drawer.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Push the drawer back until the stop dogs seat at the 199 mm stop (the latch drops in), let both levers spring back to rest, and check the 5.4 N lever force at 4.5 mm with a spring scale. Re-mark the 6 mm stem scales if they have worn.",
+  "fidelity": "Real full-size drawer, plywood, steel slides, springs and levers. The simulator treats the latch as a joint limit that lifts while both levers are down, and clears the drawer at 280 mm because the arms reach 0.35 m; a real slide's inner member runs on to its end. The drawer is inset, with flanges on the walls as the second pad surface.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-HJPSP6"
+}

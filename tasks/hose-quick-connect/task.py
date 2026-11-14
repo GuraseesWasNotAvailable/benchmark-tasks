@@ -8,18 +8,24 @@ along world +x, away from the robot, with its axis 30 mm above the table.
 
 - Tap-side female coupler (brass, fixed on a tap stand): a 30 x 30 x 50 mm body with a 20 x 20 mm bore 40 mm deep,
   mouth toward the robot. A steel locking pawl (3.5 x 10 x 10 mm) slides vertically in a slot 8 mm behind the mouth;
-  at rest its tip stands 4 mm into the bore, 5 mm above the axis.
+  at rest its tip stands 6.5 mm into the bore, 3.5 mm above the axis. The 15.5 mm shaft can sit at most 2.25 mm off
+  the bore axis, so the 11 mm groove core is never more than 5.75 mm from the pawl tip's rest position: with the groove
+  under it the pawl always drops onto the core (tip within 5.75 mm of the shaft axis), and on the 15.5 mm shaft its tip
+  is at least 5.5 mm up from rest, 7.75 mm from the shaft axis.
 - Sprung collar (black, 44 x 24 x 42 mm) over the front of the body, sliding 10 mm toward the tap against a spring
   (1.2 N at rest, 4.2 N at 10 mm), with two finger rails along its sides (52 mm over both) that end in 3 mm thumb
-  ridges. Its inner roof is a land 1.5 mm over the pawl; the roof is cut away just in front of the land, so the pawl
+  ridges. Its inner roof is a land 1.6 mm over the pawl; the roof is cut away just in front of the land, so the pawl
   can rise only once the collar is pulled back 6 mm or more.
 - Hose end (green hose, 25 mm outer diameter, 5 links over 0.20 m, anchored on the table by a clamp post at world
   (-0.10, 0) and lying straight toward the right): a brass male nipple, 15.5 mm shaft with a bullet nose, 28 mm long,
-  a 6 mm groove 5 to 11 mm behind the flange (core 11 mm diameter), a 26 x 26 x 8 mm flange and a 24 x 24 x 62 mm
+  a 9 mm groove 4 to 13 mm behind the flange (core 11 mm diameter), a 26 x 26 x 8 mm flange and a 24 x 24 x 62 mm
   crimp body with strain-relief boot (120 g).
-Locking is physical. Pushed in with the collar forward, the nipple's nose stops on the pawl, which the collar's land
-holds down. With the collar pulled back the pawl can rise and the nipple slides in; when the flange reaches the mouth
-the pawl drops into the groove, the collar springs forward over it and the nipple is held.
+Locking is physical, and the score checks it. Pushed in with the collar forward, the nipple's nose stops on the pawl,
+which the collar's land holds down. With the collar pulled back the pawl can rise and the nipple slides in; when the
+flange reaches the mouth the pawl drops into the groove, the collar springs forward over it and the nipple is held.
+The scorer reads the pawl's pose against the nipple's: the lock counts only while the pawl tip is in the groove (centre
+6 to 11 mm behind the flange face, within 7 mm of the shaft axis), the simulation's equivalent of the 10 N pull
+the real trial applies.
 """
 
 from __future__ import annotations
@@ -50,11 +56,15 @@ TIP_IN_M = 0.010  # nipple tip this far inside the mouth
 SEAT_FLANGE_M = 0.003  # flange within this of the mouth face (the pawl has 1.25 mm of slack each way in the groove)
 SEAT_TILT_DEG = 12.0
 SEAT_LAT_M = 0.004
+GROOVE_X = (0.0060, 0.0110)  # pawl centre this far behind the flange face: the 3.5 mm pawl is inside the 4 to 13 mm groove with 0.25 mm margin
+PAWL_R_MAX = 0.0070  # pawl tip within this of the shaft axis (core 5.5 mm, shoulder 7.75 mm): at least 0.75 mm below the shoulder
+PAWL_TIP = 0.005  # pawl tip below its link centre
 COLLAR_FWD_M = 0.001
 CLEAR_M = 0.030
 TCP_STILL = 0.005
 PLUG_STILL = 0.003
 RELEASE_S = 1.0
+SEAT_HOLD_S = 0.5  # engaged and seated this long without a break at some time: a pass-through does not count
 EPS = 1e-6
 SHAFT = 0.028  # nipple length from flange face to tip
 BRASS = (0.80, 0.62, 0.25)
@@ -68,8 +78,8 @@ body = [
     lk.box((0.050, 0.030, 0.005), (0.025, 0.0, 0.0175)),  # bottom wall
     lk.box((0.050, 0.005, 0.030), (0.025, 0.0125, AZ)),  # side walls
     lk.box((0.050, 0.005, 0.030), (0.025, -0.0125, AZ)),
-    lk.box((0.00575, 0.030, 0.005), (0.002875, 0.0, 0.0425)),  # top wall in front of the pawl slot
-    lk.box((0.03975, 0.030, 0.005), (0.030125, 0.0, 0.0425)),  # top wall behind the pawl slot (slot 4.5 mm wide)
+    lk.box((0.00575, 0.030, 0.004), (0.002875, 0.0, 0.042)),  # top wall in front of the pawl slot, z 40 to 44 mm
+    lk.box((0.03975, 0.030, 0.004), (0.030125, 0.0, 0.042)),  # top wall behind the pawl slot (slot 4.5 mm wide)
     lk.box((0.010, 0.030, 0.030), (0.045, 0.0, AZ)),  # end wall: bore 40 mm deep
     lk.cylinder(0.011, 0.040, (0.070, 0.0, AZ), axis="X"),  # tap spigot
     lk.box((0.054, 0.024, 0.015), (0.063, 0.0, 0.0075)),  # tap stand, behind the collar's travel
@@ -79,17 +89,17 @@ t.link("collar", [
     lk.box((0.024, 0.044, 0.004), (0.012, 0.0, 0.010)),  # floor, z 8 to 12 mm (3 mm under the body)
     lk.box((0.024, 0.004, 0.038), (0.012, 0.020, AZ + 0.0025)),  # sides, inner face 3 mm off the body
     lk.box((0.024, 0.004, 0.038), (0.012, -0.020, AZ + 0.0025)),
-    lk.box((0.020, 0.044, 0.0035), (0.014, 0.0, 0.04825)),  # roof from 4 mm back: the land over the pawl
+    lk.box((0.020, 0.044, 0.0035), (0.014, 0.0, 0.04685)),  # roof from 4 mm back: the land, 1.6 mm over the pawl's top
     lk.box((0.020, 0.008, 0.028), (0.014, 0.022, AZ)),  # finger rails along both sides, x 4 to 24 mm, outer faces 52 mm apart
     lk.box((0.020, 0.008, 0.028), (0.014, -0.022, AZ)),
     lk.box((0.002, 0.003, 0.024), (0.023, 0.0275, AZ)),  # thumb ridges at the rear end of each rail
     lk.box((0.002, 0.003, 0.024), (-0.0 + 0.023, -0.0275, AZ)),
 ], mass=0.04, at=(0.0, 0.0, 0.0), color=BLACK, friction=(1.0, 0.9), contact_offset=0.001)
-t.link("pawl", [lk.box((0.0035, 0.010, 0.010), (0.0, 0.0, 0.0))], mass=0.005, at=(0.008, 0.0, 0.040), color=STEEL,
+t.link("pawl", [lk.box((0.0035, 0.010, 0.010), (0.0, 0.0, 0.0))], mass=0.005, at=(0.008, 0.0, AZ + 0.0085), color=STEEL,
        friction=(0.2, 0.15), contact_offset=0.001)
 t.prismatic("slide", "body", "collar", anchor=(0.0, 0.0, AZ), axis=(1, 0, 0), limits=(0.0, 0.010), rest=-0.004 * OPTS["ks"] / 800.0,
             stiffness=OPTS["ks"], damping=6.0)
-t.prismatic("pawl_slide", "body", "pawl", anchor=(0.008, 0.0, 0.040), axis=(0, 0, 1), limits=(0.0, 0.006),
+t.prismatic("pawl_slide", "body", "pawl", anchor=(0.008, 0.0, AZ + 0.0085), axis=(0, 0, 1), limits=(0.0, 0.006),
             rest=-0.0015, stiffness=100.0, damping=1.0)
 TAP = t.build()
 
@@ -102,10 +112,10 @@ for i in range(1, N_LINK + 1):
     t.link(f"h{i}", [lk.capsule(0.0125, 0.015, (0.02, 0.0, 0.0), axis="X")], mass=0.012,
            at=(L_LINK * (i - 1), 0.0, 0.0), friction=(0.5, 0.4))
 t.link("plug", [
-    lk.cylinder(0.00775, 0.0093, (0.01565, 0.0, 0.0), axis="X"),  # shaft, x 0.011 to 0.0203
+    lk.cylinder(0.00775, 0.0073, (0.01665, 0.0, 0.0), axis="X"),  # shaft, x 0.013 to 0.0203
     lk.capsule(0.00775, 0.0005, (0.02025, 0.0, 0.0), axis="X"),  # bullet nose, ends at x 0.028
-    lk.cylinder(0.0055, 0.006, (0.008, 0.0, 0.0), axis="X"),  # groove core, x 0.005 to 0.011
-    lk.cylinder(0.00775, 0.005, (0.0025, 0.0, 0.0), axis="X"),  # neck, x 0 to 0.005
+    lk.cylinder(0.0055, 0.009, (0.0085, 0.0, 0.0), axis="X"),  # groove core, x 0.004 to 0.013
+    lk.cylinder(0.00775, 0.004, (0.002, 0.0, 0.0), axis="X"),  # neck, x 0 to 0.004
     lk.box((0.008, 0.026, 0.026), (-0.004, 0.0, 0.0)),  # flange
     lk.box((0.062, 0.024, 0.024), (-0.039, 0.0, 0.0)),  # crimp body with its rubber strain-relief boot
 ], mass=0.12, at=(L_LINK * N_LINK + 0.070, 0.0, 0.0), color=BRASS, friction=(0.4, 0.3))
@@ -133,7 +143,12 @@ def measure(tap, hose, tools=None, prev=None, dt=0.05):
     tilt = math.degrees(math.acos(max(-1.0, min(1.0, float(ax[0])))))
     m = {"collar": float(tap.q["slide"]), "pawl": float(tap.q["pawl_slide"]), "fx": float(p[0]),
          "tip": float(p[0] + SHAFT * ax[0]), "tilt": tilt, "lat": float(math.hypot(p[1], p[2] - AZ)),
-         "speed": 0.0, "clear": {}, "tcp_speed": {}}
+         "engaged": False, "pawl_x": 0.0, "pawl_r": 1.0, "speed": 0.0, "clear": {}, "tcp_speed": {}}
+    if "pawl" in tap.poses:  # engagement: the pawl tip is in the nipple's groove, below the shaft shoulder
+        W = np.array(tap.poses["pawl"], dtype=float)
+        tp = np.linalg.inv(P) @ (W @ np.array([0.0, 0.0, -PAWL_TIP, 1.0]))
+        m["pawl_x"], m["pawl_r"] = float(tp[0]), float(math.hypot(tp[1], tp[2]))
+        m["engaged"] = bool(GROOVE_X[0] <= tp[0] <= GROOVE_X[1] and m["pawl_r"] <= PAWL_R_MAX)
     if prev is not None and dt > 0:
         m["speed"] = float(np.linalg.norm(P[:3, 3] - prev[:3, 3]) / dt)
     if tools:
@@ -144,7 +159,9 @@ def measure(tap, hose, tools=None, prev=None, dt=0.05):
 
 
 def seated(m) -> bool:
-    return -SEAT_FLANGE_M <= m["fx"] <= 0.0015 and m["tilt"] <= SEAT_TILT_DEG and m["lat"] <= SEAT_LAT_M
+    """Flange at the mouth AND the pawl tip in the groove below the shoulder: the fitting cannot be pulled out."""
+    return (-SEAT_FLANGE_M <= m["fx"] <= 0.0015 and m["tilt"] <= SEAT_TILT_DEG and m["lat"] <= SEAT_LAT_M
+            and bool(m["engaged"]))
 
 
 class Record:
@@ -167,7 +184,7 @@ class Record:
         self.last = m
         back = m["collar"] >= COLLAR_BACK_M
         H.ever("tip_in", back and m["tip"] >= TIP_IN_M)
-        H.ever("seated_back", "tip_in" in H.evers and seated(m))
+        H.held("seat_hold", seated(m))
         H.peak("collar_max", m["collar"])
         H.peak("pawl_max", m["pawl"])
         H.peak("tip_max", m["tip"])
@@ -177,18 +194,17 @@ class Record:
 
 
 def ladder(rec: Record) -> tuple[float, str]:
+    """Every rung needs the pawl engaged in the groove (the equivalent of the real 10 N pull test); positions alone earn 0."""
     H, m = rec.H, rec.last
     if m is None:
         return 0.0, "no steps yet"
-    if "seated_back" in H.evers:
-        if seated(m) and m["collar"] <= COLLAR_FWD_M:
-            if H.runs.get("done", 0.0) >= RELEASE_S - EPS:
-                return 1.0, "coupler locked on the nipple, collar forward, both grippers 30 mm clear and still 1 s"
-            return 0.75, "locked at the end; not yet still with both grippers 30 mm clear for 1 s"
-        return 0.5, "the nipple reached the seat with the collar held back, but is not seated with the collar forward"
-    if "tip_in" in H.evers:
-        return 0.25, "tip went 10 mm in with the collar held back, never reached the seat"
-    return 0.0, "the nipple never entered the bore with the collar pulled back 7 mm"
+    if H.best_runs.get("seat_hold", 0.0) < SEAT_HOLD_S - EPS:
+        return 0.0, "the pawl was never held in the groove with the flange at the mouth for 0.5 s: no lock"
+    if seated(m) and m["collar"] <= COLLAR_FWD_M:
+        if H.runs.get("done", 0.0) >= RELEASE_S - EPS:
+            return 1.0, "pawl in the groove under the closed collar, fitting still, both grippers 30 mm clear for 1 s"
+        return 0.75, "pawl in the groove under the closed collar at the end; not yet still with both grippers 30 mm clear for 1 s"
+    return 0.5, "the pawl was held in the groove for 0.5 s at some time, but at the end the fitting is not locked with the collar forward"
 
 
 REC = Record()
@@ -208,7 +224,7 @@ def _track(tick):
     _PREV.update(P=P, t=tick.t)
     REC.update(m)
     REC.H.trace("diag", [round(1000 * m["collar"], 1), round(1000 * m["pawl"], 1), round(1000 * m["fx"], 0),
-                         round(1000 * m["lat"], 0), round(m["tilt"], 0)]
+                         round(1000 * m["lat"], 0), round(m["tilt"], 0), round(1000 * m["pawl_x"], 1), round(1000 * m["pawl_r"], 1)]
                 + [round(1000 * float(v), 0) for v in tick.tools["left"].tcp] + [round(1000 * float(v), 0) for v in tick.tools["right"].tcp],
                 every=1.0)
 
@@ -231,7 +247,8 @@ def demo():
 
 # -- scripted demo ---------------------------------------------------------------------------------------------------
 LOG: dict = {}
-VARIANTS = ("", "nothing", "no_collar", "collar_only", "drop_at_mouth")
+VARIANTS = ("", "nothing", "no_collar", "collar_only", "drop_at_mouth", "left_only", "right_only", "short_stop")
+ALIAS = {"left_only": "collar_only", "right_only": "no_collar"}  # one hand alone
 STAGE_BACK = 0.040  # staging: flange this far in front of the mouth
 GRASP_X = -0.052  # the right hand pinches the boot, in the plug frame
 
@@ -303,15 +320,19 @@ def right_arm(ctx, variant, B):
     while not st.get("collar_back"):
         yield from arm.wait(0.1)
     yield from arm.move(arm.pos + ax * (gap - 0.012), duration=1.2)
+    stop_at = -0.0100 if variant == "short_stop" else -0.0004  # the cheat stops the flange 10 mm short of the mouth
     for _ in range(40):  # push in 3 mm at a time, taking out the sideways and height error seen at the flange
         Bn = pose(ctx, "tap", "body")
         rel = np.linalg.inv(Bn) @ pose(ctx, "hose", "plug")
         fx = float(rel[0, 3])
-        if fx >= -0.0004:
+        if fx >= stop_at:
             break
         e = Bn[:3, :3] @ np.array([0.0, -rel[1, 3], AZ - rel[2, 3]])
         yield from arm.move(arm.pos + ax * min(0.003, -fx + 0.0015) + e, duration=0.35)
         yield from arm.wait(0.05)
+    if variant != "short_stop":  # the cheat lets go of the collar at once, with the flange still 3 mm out
+        yield from arm.move(arm.pos + ax * 0.002, duration=0.6)  # lean on the flange so the pawl can drop into the groove
+        yield from arm.wait(1.5)
     Bn = pose(ctx, "tap", "body")
     st["flange_x_mm"] = round(1000 * float((np.linalg.inv(Bn) @ pose(ctx, "hose", "plug"))[0, 3]), 2)
     st["seated"] = True
@@ -375,12 +396,13 @@ def left_arm(ctx, variant, B):
 def demo_script(ctx):
     LOG.clear()
     LOG["variant"] = VARIANT
+    variant = ALIAS.get(VARIANT, VARIANT)
     yield from ctx.wait(0.5)
     if VARIANT == "nothing":
         yield from ctx.wait(8.0)
         return
     B = pose(ctx, "tap", "body")
-    yield from ctx.both(left_arm(ctx, VARIANT, B), right_arm(ctx, VARIANT, B))
+    yield from ctx.both(left_arm(ctx, variant, B), right_arm(ctx, variant, B))
     yield from ctx.wait(3.6)
 
 
@@ -388,6 +410,7 @@ def demo_report() -> dict:
     score_, why = ladder(REC)
     m = REC.last or {}
     last = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in m.items() if k not in ("clear", "tcp_speed")}
+    last["pawl_x_mm"], last["pawl_r_mm"] = round(1000 * m.get("pawl_x", 0.0), 2), round(1000 * m.get("pawl_r", 0.0), 2)
     last["clear_mm"] = {s: round(1000 * v, 1) for s, v in (m.get("clear") or {}).items()}
     return {"score": score_, "why": why, "last": last, "log": dict(LOG), "opts": OPTS,
             "evers": REC.H.evers, "diag": REC.H.traces.get("diag"), "runs": {k: round(v, 2) for k, v in REC.H.runs.items()}}

@@ -23,7 +23,8 @@ DT = 0.05  # 20 Hz control
 def sample(**kw):
     """A sample of the finished state: nipple latched, collar forward, plug still, hands clear."""
     m = {"collar": 0.0, "pawl": 0.0015, "fx": -0.002, "tip": 0.026, "tilt": 5.0, "lat": 0.002, "speed": 0.0,
-         "clear": {"left": 0.17, "right": 0.10}, "tcp_speed": {"left": 0.0, "right": 0.0}}
+         "engaged": True, "pawl_x": 0.008, "pawl_r": 0.0058,
+         "engaged": True, "pawl_x": 0.008, "pawl_r": 0.0058, "clear": {"left": 0.17, "right": 0.10}, "tcp_speed": {"left": 0.0, "right": 0.0}}
     m.update(kw)
     return m
 
@@ -31,6 +32,7 @@ def sample(**kw):
 def inserting(**kw):
     """Mid-insertion: collar held back 8.5 mm, nipple 15 mm in, a hand on each part."""
     base = dict(collar=0.0085, pawl=0.004, fx=-0.013, tip=0.015, tilt=2.0, lat=0.001, speed=0.02,
+                engaged=False, pawl_x=0.020, pawl_r=0.0078,
                 clear={"left": 0.0, "right": 0.0}, tcp_speed={"left": 0.0, "right": 0.01})
     base.update(kw)
     return sample(**base)
@@ -54,7 +56,7 @@ def demo_trace():
                       tcp_speed={"left": 0.1, "right": 0.1}), 3.0)
     out += secs(inserting(fx=-0.040, tip=-0.012), 1.0)  # collar back, nipple not yet in
     out += secs(inserting(), 1.0)
-    out += secs(inserting(fx=-0.001, tip=0.027), 1.0)  # seated, collar still held back
+    out += secs(inserting(fx=-0.001, tip=0.027, engaged=True), 1.0)  # pawl dropped into the groove, collar still back
     out += secs(sample(collar=0.004, fx=-0.001, tip=0.027, clear={"left": 0.0, "right": 0.0}), 0.5)  # collar closing
     out += secs(sample(fx=-0.001, tip=0.027, clear={"left": 0.05, "right": 0.0}, tcp_speed={"left": 0.1, "right": 0.0}), 0.5)
     out += secs(sample(fx=-0.002, tip=0.026), 2.0)  # both let go, still
@@ -80,36 +82,45 @@ def test_doing_nothing_scores_zero():
 
 
 def test_pushing_against_the_closed_collar_scores_zero():
-    r = feed(secs(inserting(collar=0.0, tip=0.0059), 5) + secs(sample(fx=-0.02, tip=0.006), 3))
+    r = feed(secs(inserting(collar=0.0, tip=0.0059), 5) + secs(sample(fx=-0.02, tip=0.006, engaged=False), 3))
     assert score(r) == 0.0
 
 
 def test_collar_pulled_but_no_nipple_scores_zero():
-    r = feed(secs(inserting(tip=-0.012, fx=-0.040), 5) + secs(sample(fx=-0.07, tip=-0.04), 3))
+    r = feed(secs(inserting(tip=-0.012, fx=-0.040), 5) + secs(sample(fx=-0.07, tip=-0.04, engaged=False), 3))
     assert score(r) == 0.0
 
 
-def test_collar_back_7_0_counts_6_9_does_not():
-    r = feed(secs(inserting(collar=0.0070), 2) + secs(sample(fx=-0.02, tip=0.007), 2))
-    assert score(r) == 0.25
-    r = feed(secs(inserting(collar=0.0069), 2) + secs(sample(fx=-0.02, tip=0.007), 2))
+def test_positions_without_the_pawl_in_the_groove_score_zero():
+    """The old full score (flange at the mouth, collar forward, still, hands clear) with the pawl on the shaft scores 0."""
+    for kw in ({"engaged": False}, {"pawl_r": 0.0078, "engaged": False}, {"pawl_x": 0.0125, "engaged": False}):
+        r = feed(demo_trace()[:-40] + secs(sample(**kw), 3))
+        assert score(r) == 0.0 or score(r) == 0.5, kw
+    r = feed(secs(sample(engaged=False, fx=-0.002), 6))
+    assert score(r) == 0.0, "nothing ever engaged: a fitting merely sitting at the mouth earns nothing"
+
+
+def test_passing_through_the_groove_for_less_than_half_a_second_scores_zero():
+    r = feed(secs(inserting(fx=-0.001, tip=0.027, engaged=True), 0.45) + secs(sample(fx=-0.02, engaged=False), 4))
     assert score(r) == 0.0
-
-
-def test_tip_10_mm_in_counts_9_9_does_not():
-    r = feed(secs(inserting(tip=0.0100), 2) + secs(sample(fx=-0.02, tip=0.0), 2))
-    assert score(r) == 0.25
-    r = feed(secs(inserting(tip=0.0099), 2) + secs(sample(fx=-0.02, tip=0.0), 2))
-    assert score(r) == 0.0
-
-
-def test_seated_with_collar_still_back_is_half():
-    r = feed(secs(inserting(), 1) + secs(inserting(fx=-0.001, tip=0.027), 3))
+    r = feed(secs(inserting(fx=-0.001, tip=0.027, engaged=True), 0.55) + secs(sample(fx=-0.02, engaged=False), 4))
     assert score(r) == 0.5
 
 
-def test_seated_collar_forward_but_hands_on_is_three_quarters():
-    r = feed(demo_trace()[:80] + secs(inserting(), 1) + secs(inserting(fx=-0.001, tip=0.027), 1)
+def test_engagement_is_the_only_gate_on_the_lock():
+    r = feed(secs(inserting(fx=-0.001, tip=0.027, engaged=False), 3) + secs(sample(engaged=False), 3))
+    assert score(r) == 0.0
+    r = feed(secs(inserting(fx=-0.001, tip=0.027, engaged=True), 3))
+    assert score(r) == 0.5
+
+
+def test_engaged_with_collar_still_back_is_half():
+    r = feed(secs(inserting(), 1) + secs(inserting(fx=-0.001, tip=0.027, engaged=True), 3))
+    assert score(r) == 0.5
+
+
+def test_locked_collar_forward_but_hands_on_is_three_quarters():
+    r = feed(demo_trace()[:80] + secs(inserting(), 1) + secs(inserting(fx=-0.001, tip=0.027, engaged=True), 1)
              + secs(sample(clear={"left": 0.0, "right": 0.0}), 3))
     assert score(r) == 0.75
 
@@ -119,7 +130,7 @@ def test_flange_gap_3_0_seated_3_1_not():
     r = feed(base + secs(sample(fx=-0.0030, tip=0.025), 2))
     assert score(r) == 1.0
     r = feed(base + secs(sample(fx=-0.0031, tip=0.025), 2))
-    assert score(r) == 0.75 or score(r) == 0.5
+    assert score(r) == 0.5
 
 
 def test_tilt_12_0_seated_12_1_not():
@@ -166,7 +177,7 @@ def test_release_needs_a_full_second():
 
 def test_rungs_are_never_lost_by_pulling_the_plug_out_again():
     r = feed(demo_trace() + secs(sample(fx=-0.06, tip=-0.03), 3))
-    assert score(r) == 0.5, "seated once, then pulled out: the best rung stays at 0.5, never 0.75 or 1.0"
+    assert score(r) == 0.5, "engaged once, then pulled out: the rung stays at 0.5, never 0.75 or 1.0"
 
 
 def test_record_is_clean_after_a_reset():
@@ -190,6 +201,30 @@ def test_measure_on_stand_in_states():
     assert abs(m["fx"] + 0.012) < 1e-9
     assert abs(m["tip"] - (-0.012 + 0.028 * math.cos(math.radians(4.0)))) < 1e-9
     assert abs(m["tilt"] - 4.0) < 1e-6 and abs(m["lat"] - 0.002) < 1e-9
+    assert m["engaged"] is False  # no pawl pose given
+
+
+def test_measure_engagement_from_the_pawl_pose():
+    def at(x, z, name):
+        P = np.eye(4)
+        P[:3, 3] = [x, 0.0, z]
+        return P
+
+    body = at(0.15, 0.7475, "b")
+    plug = at(0.15 - 0.002, 0.7475 + T.AZ, "p")  # flange 2 mm in front of the mouth, on the bore axis
+
+    def engaged(pawl_centre_z):
+        tap = SimpleNamespace(poses={"body": body, "pawl": at(0.15 + 0.008, pawl_centre_z, "w")},
+                              q={"slide": 0.0, "pawl_slide": 0.0})
+        return T.measure(tap, SimpleNamespace(poses={"plug": plug}))[0]
+
+    m = engaged(0.7475 + T.AZ + 0.0085)  # tip 3.5 mm above the axis, in the groove (8 + 2 = 10 mm behind the flange face)
+    assert m["engaged"] and abs(m["pawl_r"] - 0.0035) < 1e-9 and abs(m["pawl_x"] - 0.010) < 1e-9
+    assert not engaged(0.7475 + T.AZ + 0.0125)["engaged"]  # pawl riding on the shaft: tip 7.5 mm out
+    assert engaged(0.7475 + T.AZ + 0.0119)["engaged"] and not engaged(0.7475 + T.AZ + 0.0121)["engaged"]  # 6.9 vs 7.1 mm
+    late = SimpleNamespace(poses={"body": body, "pawl": at(0.15 + 0.008, 0.7475 + T.AZ + 0.0085, "w")},
+                           q={"slide": 0.0, "pawl_slide": 0.0})
+    assert not T.measure(late, SimpleNamespace(poses={"plug": at(0.15 - 0.0045, 0.7475 + T.AZ, "p")}))[0]["engaged"]
 
 
 def test_plug_speed_from_pose_change():

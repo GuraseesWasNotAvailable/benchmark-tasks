@@ -22,6 +22,5 @@
   "run_limit": "1,200 steps (1 minute at 20 Hz)",
   "reset_notes": "Nothing is consumed. Open the door 90 deg onto its stop. Turn the side cam to 39.3 deg counter-clockwise from neutral (a scribed mark), the depth cam to neutral, and tighten the clamp screw to its stop. Check the reveals with feeler gauges (6.4 mm right, 2.6 mm left, flush, no sag). Stand the screwdriver blade-down in the rack. The cabinet and the rack are fixed on taped outlines.",
   "fidelity": "Rigid bodies. The cup hinge's four-bar linkage is one pivot on a three-axis slide; cam angles drive the slide in software (eccentric law, 0.004 N m head friction), the clamp slip is a latched 2.5 mm drop, and the lift stay and soft-close are joint springs. The run is cut to a 470 mm strip with 82 mm neighbour flaps, open-topped (no top board) so the arm can reach in; hinge arm 64 mm long. Blade-in-slot torque is real contact.",
-  "scores": "Dream-1 run: 0.0; demo: 1.0",
-  "media": "M-JZRXQ9"
+  "scores": "demo: 1.0 (see README)"
 }

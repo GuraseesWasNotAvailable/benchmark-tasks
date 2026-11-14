@@ -55,10 +55,28 @@ def test_nothing_is_zero():
     assert T.ladder(H)[0] == 0.0
 
 
-def test_wrong_index_gates_even_if_zero_seated_later():
-    tr = [carried(yaw=14.4)] * 5 + [sample(yaw=14.4)] * 3 + [sample()] * 40
+def test_wrong_tooth_at_the_end_scores_zero():
+    tr = [carried(yaw=14.4)] * 5 + [sample(yaw=14.4)] * 40
     assert T.ladder(run(tr))[0] == 0.0
-    assert T.ladder(run(tr))[1]["wrong_index"]
+    assert T.ladder(run(tr))[1]["wrong_index_now"]
+
+
+def test_wrong_tooth_then_pulled_off_and_refitted_scores_one():
+    tr = ([sample(seat=0.0, hz=1.5, held=True, yaw=14.4)] * 3 + [sample(yaw=14.4)] * 5
+          + [sample(seat=0.0, hz=30.0, held=True, yaw=14.4)] * 5 + [carried(yaw=0.2)] * 10
+          + [sample(seat=0.7, hz=0.8)] * 3 + [sample()] * 40)
+    sc, info = T.ladder(run(tr))
+    assert sc == 1.0 and not info["wrong_index_now"]
+
+
+def test_wrong_tooth_then_pulled_off_and_dropped_is_not_one():
+    tr = [carried(yaw=14.4)] * 3 + [sample(yaw=14.4)] * 5 + [sample(seat=0.0, hz=-40.0, off=150.0, yaw=30.0, held=False)] * 40
+    assert T.ladder(run(tr))[0] == 0.0
+
+
+def test_refit_leaving_it_on_another_tooth_again_is_zero():
+    tr = [carried(yaw=14.4)] * 3 + [sample(yaw=14.4)] * 5 + [sample(seat=0.0, hz=30.0, held=True)] * 5 + [sample(yaw=28.8)] * 40
+    assert T.ladder(run(tr))[0] == 0.0
 
 
 def test_seat_window_edge():
@@ -110,7 +128,7 @@ def test_seated_but_still_held_is_half_or_three_quarters():
 
 def test_end_limits():
     for kw, want in (({"hz": 0.5}, 1.0), ({"hz": 0.6}, 0.5), ({"tilt": 2.0}, 1.0), ({"tilt": 2.1}, 0.5),
-                     ({"off": 0.8}, 1.0), ({"off": 0.9}, 0.5), ({"seat": 1.3}, 1.0), ({"seat": 1.2}, 0.25)):
+                     ({"off": 0.8}, 1.0), ({"off": 0.9}, 0.25), ({"seat": 1.3}, 1.0), ({"seat": 1.2}, 0.25)):
         tr = [carried(yaw=0.2)] * 5 + [sample(**kw)] * 40
         assert T.ladder(run(tr))[0] == want, kw
 
@@ -140,7 +158,7 @@ def test_horn_must_be_still_for_the_last_second():
 
 def test_unseating_after_the_seat_loses_the_end_rung():
     tr = [carried(yaw=0.2)] * 5 + [sample()] * 5 + [sample(seat=0.0, hz=3.0, yaw=40.0, k=3)] * 40
-    assert T.ladder(run(tr))[0] == 0.5
+    assert T.ladder(run(tr))[0] == 0.25  # seated state is gone; only the carried rung remains
 
 
 def test_record_is_clean_after_reset():

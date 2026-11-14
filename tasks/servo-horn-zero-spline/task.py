@@ -13,7 +13,8 @@ z up; the table top is at z 0.7475 (TOP).
 
 A 25-tooth spline lets the horn seat only at 25 angles, 14.4 deg apart. Crest on crest the horn stands 1.5 mm proud
 of the boss; a hand press of about 3.6 N seats it only when a tooth of the shaft is in a groove of the bore (within
-2.0 deg of an index). Pressed where it lands, it seats a whole tooth away from the zero mark and stays there.
+2.0 deg of an index). Pressed where it lands, it seats a whole tooth away from the zero mark. A horn on the wrong tooth can be pulled off
+and refitted; the score is where the horn sits at the end.
 
 Goal: the horn seated flush on the boss with its arm on the zero mark (index 0), both grippers let go.
 """
@@ -120,26 +121,24 @@ def record(H: lk.History, m: dict) -> None:
     H.set("last", m)
     on_tips = m["off"] <= 1.0 and m["tilt"] <= TILT_MAX and m["hz"] <= 2.5
     H.ever("carried", bool(m["held"]) and on_tips and abs(m["yaw"]) <= 3.0)
-    if m["seat"] >= SEAT_Q_MM and "seat_k" not in H.values:
-        H.set("seat_k", m["k"])
-        H.set("seat_yaw", m["yaw"])
-    if "seat_k" in H.values:
-        H.ever("wrong", H.values["seat_k"] != 0 or abs(H.values["seat_yaw"]) > WINDOW_DEG)
     H.held("still", m["h_speed"] < 0.002 and m["h_spin"] < 2.0)
     H.held("release", all(m["clear"][s] >= 0.030 and m["tcp_speed"][s] < 0.005 for s in ("left", "right")))
 
 
 def ladder(H: lk.History) -> tuple[float, dict]:
+    """Final state only: where the horn is seated at the end. A horn that was seated on another tooth earlier and has
+    been pulled off and refitted is scored by where it sits now; nothing is zeroed for the earlier try."""
     v, m = H.values, H.values.get("last")
     if m is None:
         return 0.0, {}
-    wrong = "wrong" in H.evers
-    seated_ok = "seat_k" in v and v["seat_k"] == 0 and abs(v["seat_yaw"]) <= WINDOW_DEG
-    end = (seated_ok and m["seat"] >= SEAT_Q_MM and m["hz"] <= 0.5 and m["tilt"] <= 2.0 and m["off"] <= OFF_MAX_MM
-           and abs(m["yaw"]) <= WINDOW_DEG)
-    info = {"wrong_index": wrong, "seated_ok": seated_ok, "end": end, "still_s": round(H.runs.get("still", 0), 2),
+    seated_now = m["seat"] >= SEAT_Q_MM
+    on_mark = abs(m["yaw"]) <= WINDOW_DEG
+    wrong_now = seated_now and not on_mark  # seated on another tooth at the end: the joint is still off
+    seated_ok = seated_now and on_mark and m["off"] <= OFF_MAX_MM and m["tilt"] <= TILT_MAX
+    end = seated_ok and m["hz"] <= 0.5 and m["tilt"] <= 2.0
+    info = {"wrong_index_now": wrong_now, "seated_ok": seated_ok, "end": end, "still_s": round(H.runs.get("still", 0), 2),
             "release_s": round(H.runs.get("release", 0), 2)}
-    if wrong:
+    if wrong_now:
         return 0.0, info
     if end and H.runs.get("still", 0) >= 1.0 and H.runs.get("release", 0) >= 1.0:
         return 1.0, info
@@ -190,7 +189,11 @@ def track(tick):
         lk.set_limits("servo", "seat", 0.0, SEAT_TRAVEL if al else 0.0001)
         ST["aligned"] = al
     if m["seat"] >= SEAT_Q_MM and not lk.braked("servo", "seat"):
-        lk.brake("servo", "seat", True)  # the interference fit holds
+        lk.brake("servo", "seat", True)  # the interference fit holds the ring down while the horn sits on it
+    elif lk.braked("servo", "seat") and m["hz"] > 0.8:  # the horn was pulled off the shaft: the fit lets go
+        lk.brake("servo", "seat", False)
+        lk.set_limits("servo", "seat", 0.0, 0.0001)
+        ST["aligned"] = False
     if 20.0 < tick.t < 40.0:  # diagnostics: right pad pose relative to the horn origin (mm) and the opening
         tr = tools["right"]
         REC.trace("tool", tuple(round(1000 * float(x), 1) for x in (tr.tcp - hp[:3, 3])) + (round(1000 * tr.opening, 1),),
@@ -249,16 +252,9 @@ def _fix(ctx, arm, target_xy, target_z, target_yaw, n=3, dur=1.0):
         yield from arm.move(arm.pos + err, rot_about([0, 0, 1], dy) @ arm.rot, duration=dur)
 
 
-def demo_script(ctx):
+def _pass(ctx, arm, v, target_yaw, last):
     from linkdemo import DOWN, grip_frame
 
-    v = VARIANT
-    LOG["variant"] = v
-    yield from ctx.wait(1.0)
-    if v == "nothing":
-        yield from ctx.wait(8.0)
-        return
-    arm = ctx.right
     hp = _seen_horn(ctx)
     c = hp[:3, 3] + np.array([0.0, 0.0, 0.0025])
     r = grip_frame(DOWN, hp[:3, :3] @ np.array([0.0, 1.0, 0.0]))
@@ -270,7 +266,6 @@ def demo_script(ctx):
     yield from arm.wait(0.4)
     hover = TOP + Z_TIPS + 0.035
     yield from arm.move(arm.pos + [0, 0, 0.08], duration=1.5)
-    target_yaw = {"": 0.0, "off_by_one": PITCH, "as_picked": HORN_YAW0, "wiggle": HORN_YAW0, "drop": 0.0}[v]
     sx, sy = SHAFT_XY
     yield from _fix(ctx, arm, (sx, sy), hover, target_yaw, n=1, dur=3.0)
     yield from _fix(ctx, arm, (sx, sy), hover, target_yaw, n=2, dur=1.0)
@@ -316,4 +311,16 @@ def demo_script(ctx):
         yield from arm.move(arm.pos + [0.0, 0.0, 0.08], duration=1.0)
     yield from arm.wait(0.3)
     LOG["after_press_hz_mm"] = round(1000 * (_seen_horn(ctx)[2, 3] - TOP - Z_BOSS), 2)
-    yield from arm.wait(3.5)
+    yield from arm.wait(3.5 if last else 0.5)
+
+
+def demo_script(ctx):
+    v = VARIANT
+    LOG["variant"] = v
+    yield from ctx.wait(1.0)
+    if v == "nothing":
+        yield from ctx.wait(8.0)
+        return
+    arm = ctx.right
+    target = {"": 0.0, "off_by_one": PITCH, "as_picked": HORN_YAW0, "wiggle": HORN_YAW0, "drop": 0.0}[v]
+    yield from _pass(ctx, arm, v, target, True)

@@ -27,10 +27,10 @@ Files in this folder: `task.json`, `task.py` (scene, whole-run record, scoring a
 Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, one L40S). Versions used for the demo and
 cheat runs below:
 
-- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`)
-- inspect-robots-dream VERSION, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial; yam-arena commit
-  COMMIT; task file SHA12 equals `eval.environment_revision` in the Dream-1 log)
+- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- task file SHA-256, first 12 hex: 1ff9a16d8e30 (`sha256sum task.py | cut -c1-12`)
+- inspect-robots-dream 1.0.0, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial; yam-arena commit
+  0059d02a1a91; task file 1ff9a16d8e30 equals `eval.environment_revision` in the Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
 
@@ -90,7 +90,7 @@ The demo scores 1.0 (`success`, 987 of 1,200 steps): the core pin pushed down 1.
 0.1 mm of the tip, stick at 34.1 mm at the end, gauge back to 0.0 mm in its holder and still, the grippers clear. The
 script reads only the gauge's seen pose and the robot's own gripper; never the core joint or the record.
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (1ff9a16d8e30); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
@@ -149,8 +149,8 @@ clearance from the video.
 
 - Demo: `python linkdemo.py task.py demo_out`; `demo_out/result.json`: `task_score = 1.0`, 987 steps. Video
   `demo_out/top_cam.mp4` (with `left_cam.mp4`, `right_cam.mp4`) and `demo_out/setup.png`.
-- Dream-1 run: made at filing with the command above on this exact `task.py` (SHA12): STEPS steps, MINUTES minutes,
-  log LOG.json, task_score VALUE, ending REASON.
+- Dream-1 run: made at filing with the command above on this exact `task.py` (1ff9a16d8e30): 1200 steps, 8 minutes,
+  log adhoc_34a78ea1.json, task_score 0.0, ending max_steps.
 
 ```bash
 inspect-robots inspect <log>.json

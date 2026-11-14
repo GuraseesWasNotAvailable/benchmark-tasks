@@ -1,0 +1,24 @@
+{
+  "title": "Put a pair of reading glasses on a training manikin's head, bridge on its nose and both temples over its ears",
+  "category": "Societal relatability",
+  "keywords": [
+    "bimanual",
+    "eyeglasses",
+    "reading glasses",
+    "training manikin",
+    "hinged temples",
+    "fit over both ears",
+    "linkkit",
+    "assistive",
+    "daily living"
+  ],
+  "instruction": "Put the black reading glasses on the training manikin's head, bridge on its nose and both temples over its ears, then let go.",
+  "context": "People with a tremor, stiff hands or after a stroke need someone else to put their reading glasses on, so a home robot will be asked to. The open pair has to be carried by its temples, spread to clear the head, and guided over both ears while the frame is lowered onto the nose. The head stays where it is, so the glasses go to the head. Here the head is a training manikin.",
+  "setup": "Station table, top at z 0.7475; x forward from the arm bases, y to the robot's left, z up. (1) Training manikin head: hard vinyl over rigid foam, skin-tone (0.87, 0.72, 0.62), 2.0 kg, fixed to the table. A 20 mm tall neck stub (90 mm across) carries a 145 mm wide, 190 mm deep, 230 mm tall skull with its axis at (0.200, 0); the face looks toward the robot (front at x 0.1275, chin at z 0.7675). Nose: flat-topped ridge, 10 mm wide, 35 mm long, top at z 0.8825, x 0.1075 to 0.1425. Ears: two blocks 28 x 20 x 55 mm, flat tops at z 0.8845, x 0.212 to 0.240, standing from y +-0.0725 to +-0.0925. Friction 0.6. (2) Reading glasses: black acetate, 25 g, lying open at x 0.020, centred on y 0, lenses on the table. Front 140 mm wide: brow bar 140 x 4 x 6 mm, two clear lenses 50 x 36 x 2 mm (0.75, 0.88, 0.98), a 24 x 12 x 4 mm bridge plate (front 14 g). Two temples 138 x 3 x 8 mm, 5.5 g each, on friction hinges 133 mm apart (0.6 mN m of friction, open stop 12 deg past square, fold inward to 95 deg). (3) Wooden rest block under the temples: pine (0.62, 0.45, 0.28), 40 x 150 x 34 mm, 0.5 kg, fixed, centre (0.100, 0), table to 34 mm.",
+  "scoring": "Whole-run record (a linkkit History updated every control step, cleared only by the simulator reset). Measured: bridge underside centre against the nose top (dx along the nose, y across, dz up), each temple tip's bottom against its ear (mm behind the ear's rear edge, lateral position, mm above the ear top), each hinge angle (deg folded inward, protractor against the frame's perpendicular), whether a pad is within 4 mm of the pair. There is no fold rule; only the final state counts. Worn = bridge within 8 mm along and 6 mm across the nose and 3 mm above it (2 mm below), and each tip at least 3 mm behind its ear's rear edge, over the ear (72.5 to 92.5 mm out), at most 4 mm above the ear top and temple not folded in more than 3 deg. Ladder: 0.25 = both grippers on the pair and the frame 40 mm above its start; 0.5 = bridge on the nose at some time; 0.75 = worn at the end; 1.0 = worn for the last 1 s, the pair still (under 3 mm/s and 3 deg/s) and both grippers 30 mm clear of the pair and head and moving under 5 mm/s for 1 s (release gate). Real trial: tape for the bridge and tip offsets, a 3 mm feeler gauge under the bridge and temples, a protractor for the hinges, 60 fps video for stillness and the release gate.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Lay the glasses open with the lenses on the table and the temples across the rest block, the frame centred at x 0.020 and the temples square to the frame (hinges at their open stops, a protractor reads 0 deg). Check the hinge friction: a temple pushed to 45 deg stays there. The head and the rest block are fixed on taped outlines and need no reset.",
+  "fidelity": "Rigid glasses and head. Real frames flex and ears give; here the hinges are friction hinges that open 12 deg past square (a plain frame with the hinge spring removed and the stop filed, see README), the ears are rigid blocks with flat tops, and the nose is a 10 mm flat ridge under a flat bridge plate (real pads sit on both sides of the nose). Hinge friction is a constant 0.6 mN m. The face is simplified (no cheeks or eye sockets); the head is 145 mm wide and the frame 140 mm.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-TNPLJQ"
+}

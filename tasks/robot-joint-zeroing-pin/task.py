@@ -51,7 +51,6 @@ PIN_HOME = 0.026  # tip 1 mm past the arm's far face; the O-ring detent holds
 KNOB_REAR = -0.068  # knob rear face, joint frame x
 ZERO_TOL = 1.0  # deg
 STILL_V, STILL_W = 0.002, 2.0  # m/s, deg/s
-FALL_W = 120.0  # deg/s: the arm free-falling or flung
 PINCH_Y = 0.145  # the actuator can's centre: the hand grips its flat ends, clear of the pin guide
 
 
@@ -105,7 +104,6 @@ def record(H: lk.History, m: dict) -> None:
     """One control step of the whole-run record. m = measure() plus a_speed (m/s), a_spin (deg/s), clear and
     tcp_speed per side."""
     H.set("last", m)
-    H.ever("fell", m["a_spin"] > FALL_W)
     H.ever("through", m["qp"] >= 1000 * PIN_THROUGH and at_zero(m))
     H.ever("home", m["qp"] >= 1000 * PIN_HOME and at_zero(m))
     H.held("still", m["a_speed"] < STILL_V and m["a_spin"] < STILL_W)
@@ -117,10 +115,8 @@ def ladder(H: lk.History) -> tuple[float, dict]:
     if m is None:
         return 0.0, {}
     end = m["qp"] >= 1000 * PIN_HOME and at_zero(m)
-    info = {"fell": "fell" in H.evers, "through": "through" in H.evers, "home_ever": "home" in H.evers, "end": end,
+    info = {"through": "through" in H.evers, "home_ever": "home" in H.evers, "end": end,
             "still_s": round(H.runs.get("still", 0), 2), "release_s": round(H.runs.get("release", 0), 2)}
-    if info["fell"]:
-        return 0.0, info
     if end and H.runs.get("still", 0) >= 1.0 and H.runs.get("release", 0) >= 1.0:
         return 1.0, info
     if end:
@@ -287,6 +283,13 @@ def demo_script(ctx):
         yield from ctx.left.open(0.6)
         yield from ctx.left.retreat(0.08)
         yield from ctx.left.wait(4.0)
+        return
+    if v == "short_pin":  # the pin stopped 3 mm before its tip enters the window, then both let go
+        yield from right_push(ctx, depth=0.015)
+        yield from ctx.left.open(0.8)
+        yield from ctx.left.wait(0.4)
+        yield from ctx.left.retreat(0.04)
+        yield from ctx.left.wait(3.5)
         return
     yield from right_push(ctx)
     yield from ctx.left.open(0.8)

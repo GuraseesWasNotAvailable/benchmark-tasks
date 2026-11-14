@@ -12,7 +12,7 @@ drives a pin that fits only on that mark. Nothing is picked and placed and nothi
 the instruction, makes both hands necessary: with the motors off the link falls to its -30 deg stop (gravity torque
 0.12 N m at zero). The window sits 45 mm from the hinge and has 0.5 mm of play each way, so the pin passes only with
 the link within about 0.64 deg of the mark. The hand that holds the link cannot also push the pin, and the hand that
-pushes the pin has nothing to hold the link. The link also gates the run if it is ever let fall.
+pushes the pin has nothing to hold the link.
 
 Instruction given to the policy (26 words; it states the goal only, never how):
 
@@ -28,9 +28,9 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
 - inspect-robots-dream 0.1.0, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial)
-- task file SHA-256, first 12 hex: 5851348cdc6a (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
+- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
   Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
@@ -48,12 +48,12 @@ real boxes around a hole, so the pin's passage is plain contact physics.
 python -m pytest -q tests
 ```
 
-19 tests feed synthetic records to the scorer: a demo-shaped trace scores 1.0; nothing, the pin pushed home through
+20 tests feed synthetic records to the scorer: a demo-shaped trace scores 1.0; nothing, the pin pushed home through
 empty air with the link on its stop, and the link held without the pin all score 0; the 1.0 deg window (0.99 counts,
 1.01 does not, both signs); the 0.25 rung at 18.0 mm of travel and not at 17.9; the pin home at 26.0 mm and not at
 25.9; the pin pulled back after being home keeps 0.5; a hand 29 mm away or moving at 6 mm/s at the end scores 0.75;
-0.9 s of release is not enough and 1.1 s is; the link not still (3 mm/s or 2.1 deg/s) scores 0.75; the fall gate at
-121 deg/s gives 0 even if the pin goes home later and 119 deg/s does not; and the record is clean after a reset.
+0.9 s of release is not enough and 1.1 s is; the link not still (3 mm/s or 2.1 deg/s) scores 0.75; a fast swing of the link
+(121 or 400 deg/s) at any time costs nothing when the end state is right; a fall with no recovery scores 0; and the record is clean after a reset.
 
 ## Run and score one Dream-1 trial
 
@@ -68,11 +68,11 @@ Scoring is automatic. `task_score` reports 1.0 when the task file's `success()` 
 with `termination_reason="success"`; otherwise it is the task file's `score()` at the end of the episode
 (`SCORE_OVER = "end"`). Repeat trials: add `--epochs K`; with `object_jitter=0` the seed changes nothing in the scene.
 
-Scored runs: 1200 steps, 5 min wall clock, log `adhoc_cf4632ce.json`, task_score 0.0, max_steps.
+Scored runs: STEPS steps, MINUTES min wall clock, log `LOG.json`, task_score VALUE, REASON.
 
 ```bash
-inspect-robots inspect adhoc_cf4632ce.json
-jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, limit: .eval.max_steps, seed: .eval.seed, task_sha12: .eval.environment_revision}' adhoc_cf4632ce.json
+inspect-robots inspect LOG.json
+jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, limit: .eval.max_steps, seed: .eval.seed, task_sha12: .eval.environment_revision}' LOG.json
 ```
 
 ## Scoring
@@ -81,8 +81,8 @@ Measured every control step from reset: th = link angle from the zero mark (deg)
 linkkit History updated every control step and cleared only by the simulator reset, so withdrawing the pin and
 starting again never clears it.
 
-- Gate (any time in the run, gives 0): the link turning faster than 120 deg/s, which means it was let fall or flung.
-  At the can end that is 0.33 m/s, 5.6 mm per frame at 60 fps.
+- No speed gate and no penalty for a wrong first try: the link may be swung, dropped and lifted again at any speed.
+  Only what stands at the end, and the rungs below, decide the score.
 - Zeroed: th within 1.0 deg (the can end within 2.8 mm of the zero height).
 - 0.25: the pin 18 mm in (its tip 3 mm into the window) with the link zeroed at that time.
 - 0.5: the pin home (26 mm of travel or more) with the link zeroed, at some time.
@@ -96,8 +96,7 @@ Real-trial checks, each with a named tool, matching the scorer:
 |---|---|
 | Link zeroed (within 1 deg) | scribe lines on housing and link; a height gauge on the can end reads 90 mm over the bench at zero, 1 deg = 2.8 mm |
 | Pin 18 mm in, pin home (26 mm or more) | calipers from the knob's front face to the guide face: 29 mm minus the travel, so 11 mm or less at 18 mm in and 3 mm or less for home |
-| Fall gate | 60 fps side video; the can end moves more than 5.6 mm between frames |
-| Link still | can end moves under 2 mm in 1 s on the video |
+| Link still | 60 fps side video; can end moves under 2 mm in 1 s |
 | Hands clear | ruler marks on the table; 30 mm from every pad to the assembly, pads moving under 5 mm/s |
 
 The knob front starts 29 mm from the guide face at 0 travel, so the gap is 29 mm minus the travel (11 mm at 18 mm in,
@@ -127,15 +126,30 @@ The demo scores 1.0 (success at step 551 of 1,200): pin home at 26.2 mm, link at
 Worst IK error 0.09 mm on the right arm; the left arm's error appears only in the final 40 mm back-off after the
 release.
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (5851348cdc6a); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
 | `nothing` | Both arms stay at the ready pose. | The link stays on its stop at -30 deg, the pin at 0. | 0.0 |
 | `left_only` | Left arm lifts and holds the link at zero; the right arm idles at home. | The link is held at 0.05 deg from 12 s on, but the pin never moves (0 mm): no rung. | 0.0 |
 | `right_only` | Right arm pushes the pin home; the left arm idles at home. | The link is on its stop at -30 deg; the pin passes 11 mm above it, 26.1 mm of travel through empty air, never with the link zeroed: no rung. | 0.0 |
-| `pin_first` | Right pushes the pin home first, then the left arm lifts the link against it. | The window can no longer meet the pin; the link does not reach zero and falls back faster than 120 deg/s: gate. | 0.0 |
-| `drop` | Left holds the link at zero, then lets go before the pin is in. | The link falls to its stop faster than 120 deg/s: gate. | 0.0 |
+| `pin_first` | Right pushes the pin home first, then the left arm lifts the link against it. | The pin sits in the window path, so the link cannot reach zero with the pin in: the pin is never home with the link zeroed; at the end the link sits at -30 deg. | 0.0 |
+| `drop` | Left holds the link at zero, then lets go before the pin is in. | The link falls to its stop; the pin is never pushed: no rung. | 0.0 |
+| `short_pin` | Left holds the link at zero; right pushes the pin only 15 mm, then both let go. | The pin tip never enters the window (under the 18 mm rung) and the spring returns it to 0; the link falls to -30 deg: no rung. | 0.0 |
+
+## Revision
+
+Reviewer point, Scoring (not met): the permanent zero for exceeding 120 degrees per second also penalised controlled,
+harmless link movement. Requested change: remove it or replace it with an objectively measurable damage condition, so
+controlled fast movement does not invalidate a successful trial.
+
+- Removed the 120 deg/s gate from the scorer, the scoring text, the real-trial checks (the 60 fps fall-gate row) and the
+  tests. No other speed or fall condition replaces it: the score is the final state (pin home with the link within
+  1 deg, link still, hands clear) and the ladder rungs, so a fast or fumbled first try that is recovered costs nothing.
+- The old cheats `pin_first` and `drop` scored 0 through the gate; they now score 0 on the end state alone (no rung
+  reached, the link not zeroed with the pin in). Added the cheat `short_pin` (pin stopped under the 18 mm rung); it
+  scores 0.
+- Tests: the gate test became "a fast transient does not zero the run" plus "a fall with no recovery scores 0".
 
 ## Build log
 

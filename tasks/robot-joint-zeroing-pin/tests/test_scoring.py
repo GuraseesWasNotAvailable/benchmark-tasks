@@ -124,20 +124,25 @@ def test_arm_still_needs_a_full_second():
     assert T.ladder(feed(out))[0] == 0.75
 
 
-def test_a_fall_gates_the_run_for_good():
-    """The arm let go and falling at 121 deg/s at any time gives 0, even when the pin goes home afterwards."""
+def test_a_fast_transient_does_not_zero_the_run():
+    """A fast, controlled swing of the link at any time costs nothing; only the final state is scored."""
     out = demo_trace()
     out[30] = sample(th=-10.0, qp=0.0, a_spin=121.0)
-    assert T.ladder(feed(out))[0] == 0.0
-    out[30] = sample(th=-10.0, qp=0.0, a_spin=119.0)
     assert T.ladder(feed(out))[0] == 1.0
+    out[30] = sample(th=-10.0, qp=0.0, a_spin=400.0)
+    assert T.ladder(feed(out))[0] == 1.0
+
+
+def test_a_fall_with_no_recovery_still_scores_nothing():
+    """The link let fall before the pin is in, and never zeroed with the pin home, has no rung."""
+    out = secs(sample(th=-30.0, qp=0.0, a_spin=300.0), 2.0) + secs(sample(th=-30.0, qp=0.0), 4.0)
+    assert T.ladder(feed(out))[0] == 0.0
 
 
 def test_record_is_clean_after_a_reset():
     H = feed(demo_trace())
     H.reset()
     assert T.ladder(feed(secs(start(), 1.0), H))[0] == 0.0
-    assert "fell" not in H.evers
 
 
 def test_empty_record_is_zero():

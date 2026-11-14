@@ -1,19 +1,22 @@
-# Read a wheel's tyre pressure with a pencil gauge pressed square onto the valve, then put the gauge back
+# Read a wheel's tyre pressure through its Schrader valve with a pencil gauge, then put the gauge back
 
-The robot takes a pencil tyre gauge from its holder, presses its chuck flat and firm onto the valve of a pneumatic
-hand-truck wheel, holds it until the stick has drawn out to the tyre's pressure, and puts the gauge back upright in its
-holder. At the end the stick reads 33 to 37 (the tyre is at 35 psi), the gauge is home and still, and both grippers
-have let go. Anyone with a car, bicycle, wheelbarrow or sack truck does this; a courier or warehouse picker does it on a
-soft wheel.
+The robot takes a pencil tyre gauge from its holder, seats its chuck on the Schrader valve of a pneumatic hand-truck
+wheel so that the gauge's depressor pin pushes the valve core down, holds it until the stick has drawn out to the
+tyre's pressure, and puts the gauge back upright in its holder. At the end the stick reads 33 to 37 (the tyre is at
+35 psi), the gauge is home and still, and both grippers have let go. Anyone with a car, bicycle, wheelbarrow or sack
+truck does this; a courier or warehouse picker does it on a soft wheel.
 
-The ability is a square, firm press onto a small stem as the way to make a seal. The gauge's chuck has a 12 mm square
-socket that drops over an 8.5 mm valve stem with 1.75 mm to spare each side, and its rubber face has to sit flat on the
-valve's spring-loaded collar. Pressed at an angle or too lightly, air hisses out and the stick only draws out to 12 psi.
-Nothing is placed, locked or fastened: the seal exists only while the press is square, firm and held.
+The valve is a real Schrader valve: a brass barrel 8.5 mm across and 19 mm tall with a 4.5 mm bore, and in the bore a
+2.4 mm core pin that sits 0.5 mm below the tip on a 0.8 N/mm spring with 2.5 mm of travel. The gauge's chuck is a 12 mm
+square socket 12 mm deep whose ceiling is a rubber gasket face, with a 2 mm depressor pin standing 2 mm out of the
+ceiling. The chuck drops over the barrel, the gasket face seats on the barrel's tip and seals there (no collar, no
+separate plate), and the depressor goes down the bore and pushes the core pin 1.5 mm, which opens the valve. Air flows
+into the gauge only while the gasket is seated on the tip, the gauge is square to the valve (3 deg) and the core is
+pushed down 1.2 mm or more.
 
-Physics, not the instruction, defeats the natural plan. A tilted press can still get the socket over the stem and push
-the collar, but the gasket never seals, so the stick stalls low and the run scores 0. A dab that does not push the
-collar down 2 mm reads nothing, and a press that is let go early draws the stick only part way.
+Physics defeats the natural shortcuts. A press that is square and firm but beside the valve, or with the depressor on the
+barrel wall instead of in the bore, or too light to push the core, or tilted so the gasket cannot seat, never draws the
+stick to the tyre's pressure.
 
 Files in this folder: `task.json`, `task.py` (scene, whole-run record, scoring and the scripted demo), `linkkit.py`
 (articulated rigid-link bodies for yam_arena), `linkdemo.py` (closed-loop scripted-demo runner),
@@ -24,15 +27,15 @@ Files in this folder: `task.json`, `task.py` (scene, whole-run record, scoring a
 Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, one L40S). Versions used for the demo and
 cheat runs below:
 
-- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
-- task file SHA-256, first 12 hex: 157787adf336 (`sha256sum task.py | cut -c1-12`)
-- inspect-robots-dream 1.0.0, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial; yam-arena commit
-  0059d02a1a91; task file 157787adf336 equals `eval.environment_revision` in the Dream-1 log)
+- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`)
+- inspect-robots-dream VERSION, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial; yam-arena commit
+  COMMIT; task file SHA12 equals `eval.environment_revision` in the Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
 
 `linkkit.py` and `linkdemo.py` must sit next to `task.py`. Importing `linkkit` installs an import hook that teaches
-`yam_arena.scene` to spawn the wheel (with its valve collar on a sprung slider) and the gauge (with its sliding stick) as
+`yam_arena.scene` to spawn the wheel (with its valve core pin on a sprung slider in the barrel's bore) and the gauge (with its sliding stick) as
 PhysX articulations, and calls the task's per-step record after every control step. No fork of yam_arena and no
 third-party assets: every body is built from box and cylinder colliders in `task.py`.
 
@@ -42,11 +45,12 @@ third-party assets: every body is built from box and cylinder colliders in `task
 python -m pytest -q tests
 ```
 
-12 tests feed synthetic records to the scorer: a demo-shaped trace scores 1.0; nothing, an angled press (5 deg, stick at
-12 mm), a light press (collar 0.6 mm), a short seal (1.0 s) and a stick pulled out by hand with no seal all score 0; a
-held seal with the stick at 31 mm scores 0.4; a gauge left on the valve, or a gripper still holding at the end, scores
-0.7; an interrupted press restarts the 1.5 s timer; a reset clears the record; and the seal and leak limits (3 deg,
-2 mm collar, 1 mm collar).
+17 tests feed synthetic records to the scorer: a demo-shaped trace scores 1.0; nothing, an angled press (5 deg, stick at
+12 mm), a light press (core 0.9 mm), a gasket seated with the core not pushed, the depressor on the barrel wall, a
+press beside the valve, a lifted gasket with the valve open (leak), a short seal (1.0 s) and a stick pulled out by hand
+with no seal all score 0; a held seal with the stick at 31 mm scores 0.4; a gauge left on the valve, or a gripper still
+holding at the end, scores 0.7; a harmless early wrong try that was undone still lets the run score 1.0; an interrupted
+press restarts the 1.5 s timer; a reset clears the record; and the seal, open and leak limits.
 
 ## Run and score one Dream-1 trial
 
@@ -69,54 +73,59 @@ python linkdemo.py task.py cheat_out --variant angled     # a cheat variant (or 
 
 `linkdemo.py` runs `demo_script()` from `task.py` closed loop at 20 Hz and writes `top_cam.mp4`, `left_cam.mp4`,
 `right_cam.mp4`, `setup.png` and `result.json`. The script reads only what a camera could measure: the gauge's pose and
-the robot's own gripper. It never reads joint values, the collar's depth or the record.
+the robot's own gripper. It never reads joint values, the core pin's depth or the record.
 
 1. Right arm: approaches the gauge in its holder with the approach 45 deg downward (the arm cannot reach a level
-   approach this low), pinches the 12 mm barrel (8 mm of squeeze command), records the grasp from the seen pose and
-   lifts it 90 mm.
-2. Carries it over the valve, hovers with the chuck 22 mm above the collar, and nulls the seen position error to
-   0.3 mm; lowers in two steps (servo at 10 mm above the collar), so the socket drops over the stem.
-3. Presses down until the collar bottoms out (2.5 mm travel, commanded 8 mm below its top; the arm's soft joints give
-   only a couple of newtons), holds 3 s (the stick draws out over the first 1.5 s of sealed press), then lifts.
+   approach this low), pinches the 12 mm barrel, records the grasp from the seen pose and lifts it 90 mm.
+2. Carries it over the valve, hovers with the gasket face 22 mm above the barrel tip, and nulls the seen position
+   error to 0.3 mm; lowers in two steps (servo 8 mm above the seated position), so the socket drops over the barrel and
+   the depressor pin enters the bore.
+3. Presses down until the gasket face stops on the barrel tip (commanded 10 mm below the seated position; the arm's
+   soft joints give only a few newtons), the core pin goes down about 1.4 mm, holds 3 s (the stick draws out over the
+   first 1.5 s of sealed press), then lifts.
 4. Carries the gauge back over its holder, hovers 30 mm above, nulls the seen error, lowers into the pocket, lets go,
    backs away 80 mm, rises 60 mm and waits.
 
-The demo scores 1.0 (`success`, 987 of 1,200 steps): sealed for 4.05 s, stick at 34.1 mm at the end, gauge back to
-0.0 mm in its holder and still, the grippers clear. Worst IK error 0.1 mm and 0.01 deg. A second reset left the wheel,
-gauge and holder at their initial values and cleared the history.
+The demo scores 1.0 (`success`, 987 of 1,200 steps): the core pin pushed down 1.43 mm at most, gasket seated within
+0.1 mm of the tip, stick at 34.1 mm at the end, gauge back to 0.0 mm in its holder and still, the grippers clear. The
+script reads only the gauge's seen pose and the robot's own gripper; never the core joint or the record.
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (157787adf336); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
 | `nothing` | Both arms stay at the ready pose. | Nothing moves. | 0.0 |
-| `angled` | The full demo with the gauge held 5 deg off the valve's axis. | The socket drops over the stem and pushes the collar, but the gasket never seals: the stick stalls near 12 mm and no sealed press is ever held. | 0.0 |
-| `light` | The full demo, pressed only 0.4 mm below the collar's top. | The collar goes down well under 1 mm: no seal, no reading. | 0.0 |
-| `quick` | Presses squarely but lifts after about 1 s. | Sealed for 0.35 s at best, so the stick never draws out; no sealed press of 1.5 s. | 0.0 |
+| `beside` | The full demo, but the gauge is pressed square and firm on the rim face 40 mm from the valve (what the old collar rule would have credited as a press). | No gasket on the tip, no core pushed: no reading. | 0.0 |
+| `offset` | The full demo with the gauge 1.7 mm off the valve's axis. | The depressor pin lands on the barrel wall, gasket 2 mm off the tip, core untouched: no seal, no reading. | 0.0 |
+| `light` | The full demo, pressed only to 1 mm above the seated position (gasket face 2 mm off the tip). | The depressor tip stays at the bore's mouth, the core is not pushed (0.04 mm), the valve is closed: no reading. | 0.0 |
+| `angled` | The full demo with the gauge held 5 deg off the valve's axis. | The gasket cannot seat square; the stick stalls near 12 mm at most. | 0.0 |
+| `quick` | Presses squarely but lifts after about 1 s. | Sealed for under 1.5 s: the stick never draws out. | 0.0 |
+| `left_only` | The left arm alone, no gauge, presses its closed gripper on the valve tip. | No gauge on the valve: no reading. | 0.0 |
+
+`nothing` moves no body, so it was not rerun after the revision (the offline tests cover it). `right_only` is not a separate cheat here: the real job is one-armed, so the demo itself is the right arm alone.
 
 ## Build log (demo runs on the shared L40S)
 
 | Run | Change | Result |
 |---|---|---|
-| 1 | level approach, round barrel | 0.0: the level approach is out of the arm's reach (IK error 215 mm), the pads closed on the chuck head and the gauge tilted 15 to 25 deg |
-| 2 | approach 45 deg downward, 12 mm square barrel, 25 mm holder pocket | 0.0: the grasp held (tilt under 1 deg), but the socket missed the stem by 2.4 mm and landed on its tip |
-| 3 | hover 22 mm above the collar with a 0.3 mm servo, a second servo mid-descent, socket widened to 12 mm | 0.0: socket on the stem, but the arm's soft joints pushed the collar only 0.6 mm |
-| 4 | collar spring 2.4 to 0.8 N/mm, 3 mm squeeze command | 0.0: the gauge slid 1 mm in the pads and the collar went down only 0.9 mm |
-| 5 | press commanded 8 mm below the collar so it bottoms out | 0.4: sealed for 4 s, but the 100 N/m stick spring stalled at 31 mm against 0.5 N of friction; the return missed the holder |
-| 6 | stick spring 1,000 N/m, hover and servo above the holder before lowering | 1.0 |
-| 7 | the four cheats; `quick` first scored 1.0 because its slow lift kept the seal on past 1.5 s | `quick` shortened (0.3 s press and lift), then 0 |
-| 8 | final run with a reset check | 1.0, the same end state |
+| 1 | valve rebuilt as a barrel with a bore and a sprung core pin, chuck with a gasket ceiling and a depressor pin; press commanded 3 mm below the seated position | 0.0: core pushed only 0.92 mm, gasket 0.6 mm off the tip, below the 1.2 mm opening limit |
+| 2 | press commanded 10 mm below the seated position | 1.0, core 1.43 mm, gasket within 0.1 mm of the tip |
+| 3 | cheat runs (table above) | each 0.0 |
+
+The earlier collar-and-chuck version is superseded; see Revision.
 
 ## Scoring (`score()`, at the end of the episode; `success()` must hold 1 s)
 
 Every control step from reset, the on-step record (`Record` in `task.py`, a `linkkit.History`) measures the gauge's tilt
-from the valve's axis, the offset of its socket from the stem, the collar's depth, the stick's extension, the gauge's
-pose and speed (from its pose change between steps) and each gripper's pad clearance and speed. The record is cleared
-only by the simulator reset.
+from the valve's axis, the offset of the barrel from the socket axis, the gap between the gasket face and the barrel tip
+along the gauge's axis, the core pin's depth, the stick's extension, the gauge's pose and speed (from its pose change
+between steps) and each gripper's pad clearance and speed. The record is cleared only by the simulator reset.
 
-A press is sealed while the collar is down at least 2.0 mm, the tilt is at most 3 deg and the socket is within 2 mm of
-the stem, continuously. While sealed, the stick is drawn toward 35 mm in proportion to the time sealed (full at 1.5 s);
-a leaking press (collar down at least 1.0 mm, not sealed) draws it only to 12 mm, and nothing ever pushes it back in.
+A press is sealed while, continuously: the gasket face is within 0.4 mm of the barrel tip, the barrel is within 2 mm of
+the socket axis, the tilt is at most 3 deg, and the core pin is pushed down 1.2 mm or more (valve open). While sealed,
+the stick is drawn toward 35 mm in proportion to the time sealed (full at 1.5 s). Valve open with the gasket not seated is
+a leak and draws the stick only to 12 mm; gasket seated with the core not pushed draws nothing; nothing ever pushes the
+stick back in. A wrong first try that is undone does not matter: only the sealed hold and the final state count.
 
 - 0: no sealed press of 1.5 s at any time in the run.
 - 0.4: a sealed press of 1.5 s was held.
@@ -125,12 +134,11 @@ a leaking press (collar down at least 1.0 mm, not sealed) draws it only to 12 mm
   (under 2 mm/s) for 1 s, and the release gate holds: every pad point of both grippers at least 30 mm from the gauge and
   both moving under 10 mm/s for 1 s.
 
-`success()` is true on the 1.0 rung and `distance()` is 1 - score. Real trial: read the stick against its 1 mm per psi
-marks with a steel rule at the end (33 to 37). The sealed press and its 1.5 s come from a fixed side video at 30 frames
-per second, with a plumb line and a 3 deg printed wedge in frame for the tilt, and a 2 mm mark on the collar post for the
-collar depth; the stick's rise during the hold is the visible check that the seal held. The gauge in its holder is read
-from a top photo with a 6 mm square drawn round the pocket and a level on the gauge's barrel; the grippers' clearance
-from the video.
+`success()` is true on the 1.0 rung and `distance()` is 1 - score. Real trial: the real air seal produces the reading, so
+success is read straight off the stick against its 1 mm per psi marks with a steel rule (33 to 37), checked against a
+reference gauge on the same valve; a press that does not seat the gasket or open the core gives no reading. Gauge home
+is read from a top photo with a 6 mm square drawn round the pocket and a level on the gauge's barrel; the grippers'
+clearance from the video.
 
 ## Run limit, runtime and seeds
 
@@ -141,8 +149,8 @@ from the video.
 
 - Demo: `python linkdemo.py task.py demo_out`; `demo_out/result.json`: `task_score = 1.0`, 987 steps. Video
   `demo_out/top_cam.mp4` (with `left_cam.mp4`, `right_cam.mp4`) and `demo_out/setup.png`.
-- Dream-1 run: made at filing with the command above on this exact `task.py` (157787adf336): 1200 steps, 11 minutes,
-  log adhoc_7a3c8669.json, task_score 0.0, ending max_steps.
+- Dream-1 run: made at filing with the command above on this exact `task.py` (SHA12): STEPS steps, MINUTES minutes,
+  log LOG.json, task_score VALUE, ending REASON.
 
 ```bash
 inspect-robots inspect <log>.json
@@ -154,26 +162,44 @@ jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, 
 - Wheel: a 10 inch pneumatic hand-truck wheel, rubber tyre 260 mm across by 70 mm wide on a steel rim, 1.4 kg, lying
   flat with its axle at (0.275, -0.100) m, chocked by two wooden blocks and a taped outline so it cannot move. Inflate to
   35 psi and confirm with a reference gauge before each session.
-- Valve stem: brass Schrader stem, 8.5 mm diameter, 19 mm above the upward rim face, 55 mm from the axle at
-  (0.220, -0.100) m. The flat rim face is a turned plate bolted over the rim, with the stem fitted through it.
-- Seat collar: a 26 mm square, 3 mm tall red anodised plate with a 9 mm square opening round the stem, sliding on two
-  3 mm guide pins with a 0.8 N/mm compression spring and 2.5 mm of travel, and a printed 2 mm mark on its post. Verify
-  the spring with a kitchen scale: 2.0 N at 2.5 mm.
+- Valve: a real brass Schrader valve (barrel 8.5 mm across, 19 mm above the upward rim face, 55 mm from the axle at
+  (0.220, -0.100) m) fitted through a turned plate bolted over the rim, with its own spring-loaded core. The core pin
+  top sits 0.5 mm below the barrel tip and the valve opens at about 1.2 mm of travel (check: a depressor pin pushed 1.5
+  mm below the tip makes the tyre hiss; the core spring is about 0.8 N/mm). Replace the core if it leaks.
 - Pencil gauge: steel and brass, 124 mm long, 12 mm square barrel, 60 g, a 20 mm square chuck head with a 12 mm square,
-  24 mm deep socket and a rubber gasket on its face, a 5 mm square stick with 70 mm of travel marked 1 mm per psi, held
-  where it stops by 0.5 N of sliding friction. Verify friction by pulling the stick with a spring scale (0.4 to 0.6 N).
-  A commercial pencil gauge has a round barrel and a nonlinear scale; this one has the same size and layout with a
-  square barrel and a linear scale so that both can be read with a rule.
+  12 mm deep socket; the socket ceiling carries a rubber gasket disc (about 3 mm thick, Shore A 70) that seals on the
+  valve's tip, and a 2 mm steel depressor pin stands 2 mm out of the ceiling (a standard chuck has one). A 5 mm square
+  stick with 70 mm of travel marked 1 mm per psi, held where it stops by 0.5 N of sliding friction (check with a spring
+  scale: 0.4 to 0.6 N). Check before a session: the gauge pressed square by hand on a reference tyre at 35 psi reads
+  35 +/- 1; tilted 5 deg it reads low or nothing. A commercial pencil gauge has a round barrel and a nonlinear scale;
+  this one has the same layout with a square barrel and a linear scale so that both can be read with a rule.
 - Gauge holder: grey ABS, 50 x 50 mm base, a 25 mm square pocket 18 mm deep, 8 mm floor, at (0.300, -0.300) m.
-- Fidelity: the air seal is a rule in the scorer (the stick is drawn out only while the press is square and held), since
-  tyre air flow is not simulated. The collar's spring and the 3 deg squareness limit stand in for the valve core and
-  the gasket; in the real build the gasket's seal is felt as a hiss and seen as the stick not rising, which the
-  measurement above checks.
+- Fidelity: the simulator does not model air. The stick is drawn out only while the gasket face is seated on the barrel
+  tip, the gauge is square to the valve, and the depressor holds the core pin down 1.2 mm or more, all measured from the
+  simulated poses and the core joint. The barrel and bore are built from square boxes; the real valve is round. In the
+  real build the tyre's air does this work and the reading on the stick is the proof.
 
 ## Reset between trials
 
-Push the stick back to 0 mm, stand the gauge upright in its holder, release the collar to its top, and check the wheel
-and holder against their taped outlines and the tyre at 35 psi.
+Push the stick back to 0 mm, stand the gauge upright in its holder, check that the core pin springs back to its rest, and
+check the wheel and holder against their taped outlines and the tyre at 35 psi.
+
+## Revision
+
+Reviewer points (construct validity, scoring) and the changes:
+
+| Reviewer point | Change |
+|---|---|
+| The 24 mm-deep chuck has no specified valve-core actuator | The chuck now has a 2 mm depressor pin standing 2 mm out of its ceiling, and the valve has a bore with a sprung core pin 0.5 mm below the tip (0.8 N/mm, 2.5 mm travel); the pin pushes the core 1.5 mm and the valve opens at 1.2 mm. |
+| Its gasket seals against a loose collar rather than the Schrader valve tip | The red collar is gone. The gasket is the socket ceiling and seals on the valve barrel's tip (within 0.4 mm, square within 3 deg, barrel within 2 mm of the socket axis); socket depth is now 12 mm. |
+| Collar displacement and 3-degree angle treated as proof of a seal | Sealing now needs the core pin pushed down 1.2 mm and the gasket on the tip together; the collar depth is no longer measured. Valve open with the gasket off the tip is a leak (12 psi); gasket on the tip with the core closed gives nothing. |
+| Replace the arrangement with a working Schrader valve and gauge; real setup and scoring so an actual pressure reading establishes success | Simulation, `task.json` setup and the real-trial notes are rewritten around the valve; in the real trial the stick reading against a reference gauge is the success proof. |
+| Full-score demonstration of the revised task | Demo scores 1.0 (987 of 1,200 steps). |
+| Flag: setup rendered as object placeholders | `setup` in `task.json` is now one plain-text string. |
+
+New cheats for the old loopholes (each scores 0): `beside` (square, firm press on the rim face, no valve) and `offset`
+(depressor on the barrel wall) reach the old rule's full-score shape but not the end state; `light` (stopped short,
+valve closed) and `left_only` are also added.
 
 ## Licence
 

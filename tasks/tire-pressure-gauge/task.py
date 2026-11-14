@@ -6,16 +6,17 @@ Station table; world frame in metres from the midpoint between the two arm bases
 z up; the table top is at z 0.7475.
 
 - A 10 inch hand-truck wheel (black rubber tyre 260 mm across, 70 mm wide, 1.4 kg, steel rim) lies flat on the table,
-  chocked and fixed. Its upward rim face is flat and carries a brass Schrader valve stem (8.5 mm diameter, 19 mm tall)
-  55 mm from the axle, at (0.220, -0.100). The tyre is at 35 psi.
-- The valve is fitted with a sprung seat collar: a 26 mm square red plate, 3 mm tall, around the stem, on a spring
-  of 0.8 N/mm with 2.5 mm of travel.
+  chocked and fixed. Its upward rim face is flat and carries a brass Schrader valve (barrel 8.5 mm across, 19 mm
+  tall, a 4.5 mm bore) 55 mm from the axle, at (0.220, -0.100). In the bore sits the valve core pin (2.4 mm), 0.5 mm
+  below the barrel's tip, on a 0.8 N/mm spring with 2.5 mm of travel; the valve is open (air can flow) only while the
+  pin is pushed down 1.2 mm or more. The tyre is at 35 psi.
 - A pencil tyre gauge (steel and brass, 124 mm long, 60 g) stands in its holder at (0.300, -0.300). Its chuck is a
-  20 mm square head with a 12 mm square, 24 mm deep socket; its square 5 mm stick slides out of the top, 1 mm per
-  psi, held where it stops by 0.5 N of friction. The gauge reads only when its chuck face is pressed flat on the
-  collar (no hiss): the seat is sealed when the collar is pushed down 2 mm or more (about 1.6 N) with the gauge within
-  3 deg of the valve's axis and its socket within 2 mm of the stem, held for 1.5 s. A leaking press (collar down 1 mm
-  or more, gauge off square) reads only 12 psi.
+  20 mm square head with a 12 mm square, 12 mm deep socket whose ceiling is the rubber gasket face, and a 2 mm square
+  depressor pin standing 2 mm out of the ceiling. Its square 5 mm stick slides out of the top, 1 mm per psi, held where
+  it stops by 0.5 N of friction. The seal is the gasket face seated on the barrel's tip (within 0.4 mm, gauge within
+  3 deg of the valve's axis, barrel inside the socket within 2 mm); the depressor then pushes the core pin 1.5 mm
+  down and the valve opens. The stick is drawn out only while the gasket is seated and the core is pushed down 1.2 mm
+  or more, in proportion to the time held (full at 1.5 s). Valve open but gasket not seated is a leak (12 psi only).
 
 Goal: tyre read (stick between 33 and 37 mm), the gauge back upright in its holder, both grippers let go.
 """
@@ -49,29 +50,33 @@ RED = (0.80, 0.12, 0.12)
 BLACK = (0.10, 0.10, 0.10)
 STEEL = (0.62, 0.64, 0.68)
 
-COLLAR_TOP = 0.003  # collar height above the rim face (m)
-COLLAR_TRAVEL = 0.0025
+CORE_TRAVEL = 0.0025
 STEM_H = 0.019
-HEAD_H = 0.024  # socket depth
+HEAD_H = 0.012  # socket depth: the gasket face (ceiling) is this far above the chuck face
+PIN_L = 0.002  # depressor pin length below the gasket face
+TIP_Z = HUB_Z + STEM_H  # the barrel tip
 BODY_TOP = 0.124
 STICK_MAX = 0.070
 
-# ---- wheel (fixed) with the valve stem and its sprung collar --------------------------------------------------
+# ---- wheel (fixed) with the valve stem and its sprung core pin --------------------------------------------------
 _t = lk.Tree("wheel", pos=(WHEEL_XY[0], WHEEL_XY[1], TOP), yaw_deg=0, fixed=True, color=BLACK)
 _t.link("tyre", [lk.cylinder(0.13, 0.07, (0, 0, 0.035))], mass=1.4, friction=(0.8, 0.8), contact_offset=0.001)
 _vx = VALVE_XY[0] - WHEEL_XY[0]
 _vy = VALVE_XY[1] - WHEEL_XY[1]
-_t.link("stem", [lk.cylinder(0.00425, STEM_H, (0, 0, STEM_H / 2))], mass=0.01, at=(_vx, _vy, 0.070), color=BRASS,
-        friction=(0.3, 0.25), contact_offset=0.0005)
-_t.fixed_joint("weld", "tyre", "stem")
-_ring = [
-    lk.box((0.0085, 0.026, COLLAR_TOP), (0.00875, 0, COLLAR_TOP / 2)),
-    lk.box((0.0085, 0.026, COLLAR_TOP), (-0.00875, 0, COLLAR_TOP / 2)),
-    lk.box((0.009, 0.0085, COLLAR_TOP), (0, 0.00875, COLLAR_TOP / 2)),
-    lk.box((0.009, 0.0085, COLLAR_TOP), (0, -0.00875, COLLAR_TOP / 2)),
+_W, _H = 0.0085, 0.0045  # barrel and bore (m)
+_wall = (_W - _H) / 2
+_tube = [
+    lk.box((_wall, _W, STEM_H), (_W / 2 - _wall / 2, 0, STEM_H / 2)),
+    lk.box((_wall, _W, STEM_H), (-_W / 2 + _wall / 2, 0, STEM_H / 2)),
+    lk.box((_H, _wall, STEM_H), (0, _W / 2 - _wall / 2, STEM_H / 2)),
+    lk.box((_H, _wall, STEM_H), (0, -_W / 2 + _wall / 2, STEM_H / 2)),
 ]
-_t.link("collar", _ring, mass=0.02, at=(_vx, _vy, 0.070), color=RED, friction=(0.3, 0.25), contact_offset=0.0005)
-_t.prismatic("seat", "tyre", "collar", anchor=(_vx, _vy, 0.070), axis=(0, 0, -1), limits=(0.0, COLLAR_TRAVEL),
+_t.link("stem", _tube, mass=0.01, at=(_vx, _vy, 0.070), color=BRASS, friction=(0.3, 0.25), contact_offset=0.0005)
+_t.fixed_joint("weld", "tyre", "stem")
+CORE_REST = 0.0005  # core pin top below the barrel tip
+_t.link("core", [lk.box((0.0024, 0.0024, 0.012), (0, 0, STEM_H - CORE_REST - 0.006))], mass=0.003,
+        at=(_vx, _vy, 0.070), color=RED, friction=(0.3, 0.25), contact_offset=0.0003)
+_t.prismatic("core_slide", "stem", "core", anchor=(_vx, _vy, 0.070), axis=(0, 0, -1), limits=(0.0, CORE_TRAVEL),
              rest=0.0, stiffness=800.0, damping=2.0)
 WHEEL = _t.build()
 
@@ -82,6 +87,7 @@ _head = [
     lk.box((0.012, 0.004, HEAD_H), (0, 0.008, HEAD_H / 2)),
     lk.box((0.012, 0.004, HEAD_H), (0, -0.008, HEAD_H / 2)),
     lk.box((0.020, 0.020, 0.004), (0, 0, HEAD_H + 0.002)),
+    lk.box((0.002, 0.002, PIN_L), (0, 0, HEAD_H - PIN_L / 2)),
     lk.box((0.012, 0.012, BODY_TOP - HEAD_H - 0.004), (0, 0, (BODY_TOP + HEAD_H + 0.004) / 2)),
 ]
 GAUGE_START = (HOLDER_XY[0], HOLDER_XY[1], TOP + 0.008)
@@ -108,8 +114,8 @@ OBJECTS = [WHEEL, GAUGE, HOLDER]
 
 # ---- scoring -------------------------------------------------------------------------------------------------------
 SEAL_TILT_DEG = 3.0
-SEAL_COLLAR_M = 0.0020
-LEAK_COLLAR_M = 0.0010
+SEAT_GAP_M = 0.0004  # gasket face to barrel tip
+OPEN_CORE_M = 0.0012  # core pin down: valve open
 SEAL_OFFSET_M = 0.0020
 SEAL_HOLD_S = 1.5
 LEAK_READING = 0.012
@@ -129,24 +135,36 @@ def measure(wheel, gauge, tools, prev=None, dt=0.05) -> dict:
     A = np.asarray(gauge.poses["body"], float)
     ax = A[:3, 2]
     tilt = math.degrees(math.acos(max(-1.0, min(1.0, float(ax[2])))))
-    stem = np.array([VALVE_XY[0], VALVE_XY[1], HUB_Z])
-    off = float(np.linalg.norm((A[:3, 3] - stem)[:2]))
-    collar = float(wheel.q["seat"])
+    tip = np.array([VALVE_XY[0], VALVE_XY[1], TIP_Z])
+    d = tip - A[:3, 3]
+    zloc = float(d @ ax)
+    off = float(np.linalg.norm(d - zloc * ax))  # barrel axis offset from the socket axis
+    gap = HEAD_H - zloc  # gasket face to barrel tip along the gauge axis
+    core = float(wheel.q["core_slide"])
     clear = {s: float(lk.clearance(t, gauge)) for s, t in tools.items()}
     speed = 0.0 if prev is None else float(np.linalg.norm(A[:3, 3] - prev)) / dt
     hm = A[:3, 3] - np.array(GAUGE_START)
-    return {"tilt": tilt, "off": off, "collar": collar, "reading": float(gauge.q["slide"]),
+    return {"tilt": tilt, "off": off, "gap": gap, "core": core, "reading": float(gauge.q["slide"]),
             "pos": tuple(float(v) for v in A[:3, 3]), "speed": speed,
             "home_xy": float(np.linalg.norm(hm[:2])), "home_z": float(abs(hm[2])),
             "clear": clear, "tcp_speed": {s: float(t.speed) for s, t in tools.items()}}
 
 
+def seated(m) -> bool:
+    return m["tilt"] <= SEAL_TILT_DEG and m["off"] <= SEAL_OFFSET_M and m["gap"] <= SEAT_GAP_M and m["gap"] > -0.002
+
+
+def opened(m) -> bool:
+    return m["core"] >= OPEN_CORE_M
+
+
 def sealed(m) -> bool:
-    return m["tilt"] <= SEAL_TILT_DEG and m["collar"] >= SEAL_COLLAR_M and m["off"] <= SEAL_OFFSET_M
+    """Air flows into the gauge: gasket seated on the barrel tip AND the depressor holds the core pin open."""
+    return seated(m) and opened(m)
 
 
 def leaking(m) -> bool:
-    return m["collar"] >= LEAK_COLLAR_M and not sealed(m)
+    return opened(m) and not seated(m)
 
 
 def reading_ok(m) -> bool:
@@ -179,7 +197,7 @@ class Record:
         run = H.held("sealed", sealed(m))
         H.ever("seal_hold", run >= SEAL_HOLD_S - EPS)
         H.peak("reading_max", m["reading"])
-        H.peak("collar_max", m["collar"])
+        H.peak("core_max", m["core"])
         H.held("home_still", home(m) and m["speed"] < GAUGE_STILL and reading_ok(m))
         H.held("released", bool(m["clear"]) and min(m["clear"].values()) >= CLEAR_M
                and max(m["tcp_speed"].values()) < TCP_STILL)
@@ -238,7 +256,7 @@ def _track(tick):
         lk.set_spring("gauge", "slide", 0.0, 2.0)
         _DRV.update(rest=None, on=False)
     if REC.n % 5 == 0:
-        REC.trace.append((round(tick.t, 2), round(m["tilt"], 1), round(1000 * m["collar"], 2), round(1000 * m["off"], 1),
+        REC.trace.append((round(tick.t, 2), round(m["tilt"], 1), round(1000 * m["core"], 2), round(1000 * m["gap"], 1),
                           round(1000 * m["reading"], 1), round(run, 2),
                           [round(1000 * v, 0) for v in m["clear"].values()]))
 
@@ -262,10 +280,10 @@ def demo():
 # -- scripted demo ---------------------------------------------------------------------------------------------------
 import linkdemo as ld  # noqa: E402
 
-VARIANTS = ("", "nothing", "angled", "light", "quick")
+VARIANTS = ("", "nothing", "angled", "light", "quick", "offset", "beside", "left_only")
 GRIP_OPEN, GRIP_CLOSED = 0.040, 0.003
 GRASP_Z = 0.062  # TCP height above the chuck face along the gauge axis
-PRESS_DEPTH = 0.008  # below the collar top
+PRESS_DEPTH = 0.010  # below the seated position (the gasket stops on the tip; the soft arm gives a few N)
 LOG: dict = {}
 ANGLE = 5.0
 GX = float(os.environ.get("GX", "0")) * 0.001
@@ -329,6 +347,16 @@ def demo_script(ctx):
     if variant == "nothing":
         yield from ctx.wait(8.0)
         return
+    if variant == "left_only":
+        # the left arm alone, no gauge: it reaches over the valve and presses its closed gripper on the core pin
+        la = ctx.left
+        RL = ld.grip_frame((1, 0, -1), (0, 1, 0))
+        tipp = np.array([VALVE_XY[0], VALVE_XY[1], TIP_Z])
+        yield from la.move(tipp + np.array([0, 0, 0.08]), RL, width=GRIP_CLOSED, duration=3.0)
+        yield from la.move(tipp + np.array([0, 0, 0.004]), RL, duration=3.0)
+        yield from la.move(tipp - np.array([0, 0, 0.006]), RL, duration=2.0)
+        yield from ctx.wait(4.0)
+        return
     arm = ctx.right
     hand = Hand(ctx)
     R0 = ld.grip_frame((1, 0, -1), (0, 1, 0))
@@ -347,18 +375,22 @@ def demo_script(ctx):
     LOG['gauge_axis_vs_tcp_mm'] = [round(1000 * float(v), 1) for v in (arm.pos - hand.seen()[:3, 3])]
     lift = p_start + np.array([0, 0, 0.090])
     yield from hand.follow(p_start, 0.0, lift, 0.0, 1.2)
-    top = np.array([VALVE_XY[0], VALVE_XY[1], HUB_Z + COLLAR_TOP])
+    top = np.array([VALVE_XY[0], VALVE_XY[1], TIP_Z - HEAD_H])  # gauge origin with the gasket face on the tip
+    if variant == "offset":
+        top = top + np.array([0, 0.0017, 0])  # pin lands on the barrel wall, not in the bore
+    if variant == "beside":
+        top = np.array([VALVE_XY[0], VALVE_XY[1] - 0.040, HUB_Z])  # square, firm press on the rim face, off the valve
     tilt = ANGLE if variant == "angled" else 0.0
     hover = top + np.array([0, 0, HOVER])
     yield from hand.follow(lift, 0.0, hover, tilt, 4.0)
-    depth = {"light": 0.0004}.get(variant, PRESS_DEPTH)
+    depth = {"light": -0.0011}.get(variant, PRESS_DEPTH)
     hold = {"quick": 0.2}.get(variant, 3.0)
     fast = variant == "quick"
-    mid = top + np.array([0, 0, 0.010])
+    mid = top + np.array([0, 0, 0.008])
     yield from hand.servo(hover, tilt, tries=5, tol=0.0003)
     yield from hand.follow(hover, tilt, mid, tilt, 3.0)
     yield from hand.servo(mid, tilt, tries=3, tol=0.0003)
-    near = top + np.array([0, 0, 0.004])
+    near = top + np.array([0, 0, 0.003])
     yield from hand.follow(mid, tilt, near, tilt, 1.5)
     press = top - np.array([0, 0, depth])
     LOG['slip0_mm'] = round(1000 * float(arm.pos[2] - hand.seen()[2, 3]), 2)

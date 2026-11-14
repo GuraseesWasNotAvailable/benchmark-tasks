@@ -110,9 +110,12 @@ OBJECTS = [GEAR, RACK_N, RACK_F, TRAY]
 # -- scoring ---------------------------------------------------------------------------------------------------------
 SEAT_X_TOL, SEAT_Y_TOL = 0.002, 0.0035  # m
 SEAT_Z_MAX = Z0 + 0.0015
+SEAT_Z_MIN = Z0 - 0.0015
+COUPLE_MM = 15.0  # opening travel in which pulling the near rack alone must have driven the far rack
+FREE_FAR_M = 0.005  # no pad point of either gripper within this of the far rack while it is being driven
+WINDOW = 4  # control steps of the coupling window
 SEAT_TILT_DEG = 3.0
 SYM_TOL_MM = 3.0  # finger-gap centre off the housing centre line (half the difference of the two openings)
-GATE_MM = 3.5
 OPEN_MM = 15.0
 STEADY_S, RELEASE_S = 1.0, 1.0
 RACK_STILL = 0.003  # m/s
@@ -126,23 +129,32 @@ def measure(states, tools) -> dict:
     sF = (YC0 - f[1, 3]) * 1000.0
     tilt = math.degrees(math.acos(max(-1.0, min(1.0, float(f[2, 2])))))
     yaw = math.degrees(math.atan2(float(f[1, 0]), float(f[0, 0])))
-    clear = {}
+    clear, clear_f = {}, {}
     for side, tool in tools.items():
+        clear_f[side] = lk.clearance(tool, states["rackF"])
         clear[side] = min(lk.clearance(tool, states["rackN"]), lk.clearance(tool, states["rackF"]),
                           lk.clearance(tool, states["gear"]))
     return {
         "sN": float(sN), "sF": float(sF),
         "F": (float(f[0, 3]), float(f[1, 3]), float(f[2, 3])),
         "N_z": float(n[2, 3]), "N_x": float(n[0, 3]), "N_yaw": math.degrees(math.atan2(float(n[1, 0]), float(n[0, 0]))),
+        "N_tilt": math.degrees(math.acos(max(-1.0, min(1.0, float(n[2, 2]))))), "clear_F": clear_f,
         "spin": float(states["gear"].deg("spin")), "tilt": tilt, "yaw_err": abs(abs(yaw) - 180.0),
         "clear": clear, "tcp_speed": {s: float(t.speed) for s, t in tools.items()},
     }
 
 
 def seated(m) -> bool:
+    """The far rack lies in its channel on the floor plate, level and straight."""
     fx, fy, fz = m["F"]
-    return (abs(fx - FAR_X) <= SEAT_X_TOL and fz <= SEAT_Z_MAX
+    return (abs(fx - FAR_X) <= SEAT_X_TOL and SEAT_Z_MIN <= fz <= SEAT_Z_MAX
             and m["tilt"] <= SEAT_TILT_DEG and m["yaw_err"] <= 4.0 and -2.0 <= m["sF"] <= 60.0)
+
+
+def near_seated(m) -> bool:
+    """The near rack lies in its own channel on the floor plate, level and straight (not lifted out and set aside)."""
+    return (abs(m["N_x"] - NEAR_X) <= SEAT_X_TOL and SEAT_Z_MIN <= m["N_z"] <= SEAT_Z_MAX
+            and m["N_tilt"] <= SEAT_TILT_DEG and abs(m["N_yaw"]) <= 4.0 and -2.0 <= m["sN"] <= 60.0)
 
 
 def offset_mm(m) -> float:
@@ -158,10 +170,12 @@ class Record:
         self.last: dict | None = None
         self.n = 0
         self.trace: list = []
+        self.win: list = []
+        self.coupled = 0.0  # mm of opening travel in which both racks moved open together, both seated, no hand on the far rack
 
     def reset(self) -> None:
         self.H.reset()
-        self.last, self.n, self.trace = None, 0, []
+        self.last, self.n, self.trace, self.win, self.coupled = None, 0, [], [], 0.0
 
     def update(self, m: dict, t: float | None = None) -> None:
         H = self.H
@@ -170,8 +184,13 @@ class Record:
         prev = self.last
         self.last = m
         self.n += 1
-        H.ever("dropped", min(m["F"][2], m["N_z"]) < TOP - 0.01)
-        H.ever("off_tooth", seated(m) and abs(offset_mm(m)) > GATE_MM)
+        self.win.append(m)
+        if len(self.win) > WINDOW:
+            old = self.win.pop(0)
+            dn, df = m["sN"] - old["sN"], m["sF"] - old["sF"]
+            free = bool(m["clear_F"]) and min(m["clear_F"].values()) >= FREE_FAR_M
+            if seated(m) and near_seated(m) and free:
+                self.coupled += min(max(dn, 0.0), max(df, 0.0)) / (WINDOW - 1)
         if prev is not None and H.dt > 0:
             vs = max(abs(m["F"][1] - prev["F"][1]), abs((m["sN"] - prev["sN"]) * MM)) / H.dt
         else:
@@ -185,14 +204,14 @@ def ladder(rec: Record) -> tuple[float, str]:
     H, m = rec.H, rec.last
     if m is None:
         return 0.0, "no steps yet"
-    if "dropped" in H.evers:
-        return 0.0, f"gate: a rack fell off the bench at {H.evers['dropped']:.2f} s"
-    if "off_tooth" in H.evers:
-        return 0.0, f"gate: the far rack meshed one or more teeth off at {H.evers['off_tooth']:.2f} s"
+    if not near_seated(m):
+        return 0.0, "the near rack is not seated in its channel (lifted out, tilted or set aside)"
     if not seated(m):
         return 0.0, "the far rack is not seated in its channel"
+    if rec.coupled < COUPLE_MM:
+        return 0.0, f"the racks were not shown to drive each other: {rec.coupled:.1f} mm coupled opening of {COUPLE_MM:.0f}"
     if abs(offset_mm(m)) > SYM_TOL_MM:
-        return 0.25, "far rack seated, but the fingers are not symmetric about the centre"
+        return 0.25, "both racks seated and coupled, but the fingers are not symmetric about the centre"
     if min(m["sN"], m["sF"]) < OPEN_MM:
         return 0.5, "seated and symmetric; the jaws are not open 15 mm each"
     ends = {"racks still 1 s": H.runs.get("steady", 0.0) >= STEADY_S - EPS,
@@ -237,7 +256,7 @@ def demo():
 
 
 # -- scripted demo ---------------------------------------------------------------------------------------------------
-VARIANTS = ("", "nothing", "skip_close", "one_tooth")
+VARIANTS = ("", "nothing", "left_only", "right_only", "one_tooth", "near_out", "uncoupled")
 CONTACT = 0.011  # pad contact centre past the TCP
 GRIP_W = 0.006
 HOVER = 0.045
@@ -316,10 +335,25 @@ def demo_script(ctx):
         yield from ctx.wait(6.0)
         return
     left, right = ctx.left, ctx.right
-    st = {"n_closed": v == "skip_close", "f_done": False}
+    st = {"n_closed": v == "left_only", "f_done": False, "l_ready": False, "r_ready": False}
+
+    def pull_open(arm, sign, steps=9):
+        for _ in range(steps):
+            yield from arm.move(arm.pos + np.array([0.0, sign * 0.003, 0.0]), duration=0.4)
 
     def near():
-        if v != "skip_close":
+        if v == "left_only":
+            return
+        if v == "near_out":  # cheat: lift the near rack out of its channel and set it down beside the housing
+            yield from pick(ctx, right, "rackN")
+            yield from right.move(right.pos + np.array([0.0, 0.0, 0.05]), duration=1.0)
+            yield from right.move(right.pos + np.array([-0.048, 0.0116, 0.0]), duration=1.5)
+            yield from right.move(right.pos + np.array([0.0, 0.0, -0.053]), duration=1.0)
+            yield from right.grip(APPROACH_W, 0.5)
+            yield from right.move(right.pos + np.array([0.0, 0.0, 0.08]), duration=1.0)
+            st["n_closed"] = True
+            return
+        if v != "left_only":
             yield from pick(ctx, right, "rackN")
             N = pose_of(ctx, "rackN")
             yield from right.move(right.pos + np.array([0.0, -((N[1, 3] + YC0) + 0.0015), 0.0]), duration=2.0)
@@ -328,9 +362,18 @@ def demo_script(ctx):
             yield from right.grip(APPROACH_W, 0.5)  # let go; the stop holds the rack closed
             st["n_closed"] = True
             yield from right.move(right.pos + np.array([0.0, 0.0, 0.07]), duration=1.0)
+        if v == "uncoupled":  # cheat: each hand drags its own rack open at the same time
+            while not st["l_ready"]:
+                yield from right.wait(0.1)
+            yield from pick(ctx, right, "rackN", fast=True)
+            st["r_ready"] = True
+            yield from pull_open(right, +1)
+            yield from right.grip(APPROACH_W, 0.5)
+            yield from right.move(right.pos + np.array([0.0, 0.0, 0.08]), duration=0.8)
+            return
         while not st["f_done"]:
             yield from right.wait(0.1)
-        if v in ("", "one_tooth", "n_only"):  # open the jaws: pull the near rack out 18 mm
+        if v in ("", "one_tooth", "right_only"):  # open the jaws: pull the near rack out 18 mm
             yield from pick(ctx, right, "rackN", fast=True)
             LOG["pull_start"] = [round(float(right.pos[1]) * 1000, 1), round(float(ctx.observe().tools["right"].tcp[1]) * 1000, 1)]
             for k in range(9):
@@ -345,7 +388,7 @@ def demo_script(ctx):
             yield from right.move(right.pos + np.array([0.0, 0.0, 0.08]), duration=0.8)
 
     def far():
-        if v == "n_only":
+        if v == "right_only":
             st["f_done"] = True
             return
         yield from pick(ctx, left, "rackF")
@@ -386,8 +429,28 @@ def demo_script(ctx):
         yield from left.wait(0.3)
         LOG["seat_err_mm"] = [round(float(x) * 1000, 2) for x in (pose_of(ctx, "rackF")[:3, 3] - goal[:3, 3])]
         yield from left.grip(APPROACH_W, 0.5)
-        yield from left.wait(0.5)
-        yield from left.move(left.pos + np.array([0.0, 0.0, 0.05]), duration=0.6)
+        if v == "uncoupled":  # cheat: let the rack settle, take hold of it again; the right hand drags the near rack
+            for _ in range(60):
+                if pose_of(ctx, "rackF")[2, 3] < Z0 + 0.0008:
+                    break
+                yield from left.wait(0.1)
+            yield from left.wait(0.3)
+            yield from pick(ctx, left, "rackF", fast=True)
+            st["l_ready"] = True
+            while not st["r_ready"]:
+                yield from left.wait(0.1)
+            yield from pull_open(left, -1)
+            yield from left.grip(APPROACH_W, 0.5)
+            yield from left.move(left.pos + np.array([0.0, 0.0, 0.08]), duration=0.8)
+        else:
+            yield from left.wait(0.5)
+            yield from left.move(left.pos + np.array([0.0, 0.0, 0.05]), duration=0.6)
+        if v == "near_out":  # cheat: with the near rack gone, drag the far rack open to the same travel by hand
+            yield from left.move(left.pos + np.array([0.0, 0.0, -0.05]), duration=0.6)
+            yield from pick(ctx, left, "rackF", fast=True)
+            yield from pull_open(left, -1, 7)
+            yield from left.grip(APPROACH_W, 0.5)
+            yield from left.move(left.pos + np.array([0.0, 0.0, 0.08]), duration=0.8)
         yield from left.move(left.pos + np.array([0.04, 0.09, 0.03]), duration=1.0)  # clear of the right arm
         st["f_done"] = True
 
@@ -399,6 +462,6 @@ def demo_report() -> dict:
     s, why = ladder(REC)
     m = REC.last or {}
     return {"score": s, "reason": why, "variant": VARIANT, "evers": dict(REC.H.evers),
-            "runs": {k: round(x, 2) for k, x in REC.H.runs.items()},
+            "runs": {k: round(x, 2) for k, x in REC.H.runs.items()}, "coupled_mm": round(REC.coupled, 2),
             "last": {k: (round(x, 3) if isinstance(x, float) else x) for k, x in m.items() if k not in ("clear", "tcp_speed")},
             "log": dict(LOG), "trace": REC.trace}

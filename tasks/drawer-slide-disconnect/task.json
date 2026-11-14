@@ -21,5 +21,6 @@
   "run_limit": "1,200 steps (1 minute at 20 Hz)",
   "reset_notes": "Nothing is consumed. Lift the drawer onto the rails from above (inner members on the rail tops, dogs in front of their blocks), slide it to the 129 mm stop, let both levers spring back to rest, and check the 5.4 N lever force at 4.5 mm with a spring scale. Re-mark the 6 mm bar scales if they have worn.",
   "fidelity": "Full-size drawer, plywood, steel channels, springs, dogs and levers. The drawer is a free rigid body resting on rails: detaching it and setting it on the table are done by the arms and gravity, with no joint or brake standing in for the slide. The simulator keeps the intermediate slide members rigid and fixed to the bay, modelled as a rail 20 mm proud of the bay face. A real drawer would not close back through the lever tabs, so the rig is reset by lowering the drawer onto the rails from above.",
-  "scores": "Dream-1 run: score VALUE, REASON, STEPS steps, MINUTES minutes, log LOG.json; demo: 1.0 on task.py SHA12 (success at step 519 of 1,200); cheats left_only, right_only, pull_release: 0.0 each."
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-ZDTGJS"
 }

@@ -49,8 +49,8 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
-- task.py sha SHA12 (`sha256sum task.py | cut -c1-12`)
+- yam-arena 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- task.py sha 9eb243b81bc4 (`sha256sum task.py | cut -c1-12`)
 
 ## Offline check, no simulator
 
@@ -60,8 +60,8 @@ pytest -q tests        # 14 scorer tests, pure Python (yam_arena must be importa
 
 ## Run and score one Dream-1 trial
 
-Dream-1 run on inspect-robots 1.0.0 at COMMIT, task SHA12, STEPS steps (MINUTES minutes), log LOG.json, score VALUE,
-REASON.
+Dream-1 run on inspect-robots 1.0.0 at 0059d02a1a91, task 9eb243b81bc4, 1200 steps (7 minutes), log adhoc_8a1bb513.json, score 0.0,
+max_steps.
 
 ## Scripted demo and cheat variants
 
@@ -126,7 +126,7 @@ deterministic; there is no random seed.
 ## Submitted videos and scores
 
 - Demo: `python linkdemo.py task.py demo_out`, `demo_out/result.json`: `task_score = 1.0`, success at step 519.
-- Dream-1 run: score VALUE, REASON, STEPS steps, MINUTES minutes, log LOG.json.
+- Dream-1 run: score 0.0, max_steps, 1200 steps, 7 minutes, log adhoc_8a1bb513.json.
 
 ## Materials
 

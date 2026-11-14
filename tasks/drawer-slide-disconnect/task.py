@@ -1,17 +1,19 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 the task authors
-"""Take a drawer out of its ball-bearing slides by working both disconnect levers at once.
+"""Take a drawer off its ball-bearing slides and set it down on the table.
 
 Station table; world frame in metres from the midpoint between the two arm bases, x forward, y to the robot's left,
 z up; the table top is at z 0.7475.
 
-- A plywood drawer bay (300 x 316 x 200 mm, front at x 0.4115) is fixed to the table on an 85 mm plinth. A drawer
-  (280 x 240 x 75 mm, 1.2 kg) hangs on two ball-bearing slides, standing pulled out 199 mm, against the end stop.
-- Each slide has a spring-return disconnect lever on its inner member. The left (+y) lever is a tab under the
-  drawer's left wall that is pushed UP; the right (-y) lever is a tab over the right wall that is pushed DOWN. Both
-  tabs move 6 mm and a lever counts as pressed at 4.5 mm. The end stop only clears while BOTH levers are pressed (one
-  alone leaves the other slide locked); once the inner members are past the stop they run free to 34 cm.
-- The drawer is out when it is 280 mm or more from closed, at rest.
+- A plywood drawer bay (300 x 316 x 200 mm, front at x 0.38) stands fixed on the table on an 85 mm plinth. Each side
+  has a slide channel (web, bottom rail) on the bay. The drawer (280 x 240 x 75 mm, 1.2 kg) is a free body: its two
+  steel inner slide members rest on the channel rails and nothing else holds it. It stands pulled out 129 mm.
+- Each inner member carries a spring-return release lever with a latch dog at its rear end. The left (+y) lever is a
+  tab pushed UP, the right (-y) lever a tab pushed DOWN; both move 6 mm. A dog that is not lifted (left) or lowered
+  (right) at least 4.5 mm out of the way stops against a fixed block in its channel at 130 mm, so both levers must be
+  held while the drawer is drawn out. Past the block the inner members run free; the drawer leaves the rails when its
+  rear is 290 mm from closed and then hangs from the grippers alone.
+- Full score: the drawer is off both slides, flat on the table, at rest, and both grippers have let go.
 """
 
 import math
@@ -32,22 +34,19 @@ SUCCESS_HOLD_S = 1.0
 VARIANT = os.environ.get("DEMO_VARIANT", "")
 MM = 0.001
 
-B = 0.4115  # bay front, x
-Z0 = 0.10  # drawer bottom above the table
-START_EXT = 0.199
-STOP = 0.200  # latched stop (m of extension)
-LO = 0.12
-FREE_HI = 0.34
-PAST = 0.215  # rung: drawer seen past the stop
-CLEARED = 0.280  # rung: drawer out
-DOG = 0.204  # inner members past the stop dog
+B = 0.38  # bay front, x
+Z0 = 0.10  # drawer bottom above the table while on the rails
+START_EXT = 0.129
+STOP = 0.130  # latch dogs meet their blocks (m of extension)
+D_LEN = 0.28  # drawer depth
 TRAVEL = 0.006
 ON = 0.0045  # lever pressed
+BAY_CLEAR = 0.010  # drawer rear this far in front of the bay front counts as off the slides
+FLAT_TOL = 0.004  # bottom corners within this of the table top
 CLEAR_M = 0.03
 TCP_STILL = 0.01
 DRAWER_STILL = 0.005
-RELEASE_S = 1.0
-STILL_S = 1.0
+HOLD_S = 1.0
 EPS = 1e-6
 
 WOOD = (0.70, 0.55, 0.35)
@@ -57,57 +56,94 @@ RED = (0.85, 0.15, 0.12)
 BLUE = (0.15, 0.30, 0.85)
 
 
-def bx(x0, x1, y0, y1, z0, z1):
+def bx(x0, x1, y0, y1, z0, z1, color=None):
     """Box from drawer-frame ranges (m); z is measured from the drawer bottom, lifted by Z0 to the tree frame."""
-    return lk.box((x1 - x0, y1 - y0, z1 - z0), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + Z0))
+    return lk.box((x1 - x0, y1 - y0, z1 - z0), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 + Z0), color=color)
 
 
-def bay_box(x0, x1, y0, y1, z0, z1):
-    return lk.box((x1 - x0, y1 - y0, z1 - z0), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
+def bay_box(x0, x1, y0, y1, z0, z1, color=None):
+    return lk.box((x1 - x0, y1 - y0, z1 - z0), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), color=color)
 
 
-_t = lk.Tree("drawer", pos=(B, 0.0, TOP), fixed=True, color=WOOD)
-_t.link("bay", [
+# Bay: plinth, walls, top, back, and per side a slide channel (8 mm web, 11 mm-wide bottom rail under the inner
+# member, latch block). Channels run from 20 mm in front of the bay face to its back.
+_b = lk.Tree("bay", pos=(B, 0.0, TOP), fixed=True, color=WOOD)
+_chan = []
+for _s in (1.0, -1.0):
+    _lo, _hi = sorted((_s * 0.1215, _s * 0.1454))
+    _wl, _wh = sorted((_s * 0.1372, _s * 0.1454))
+    _bl, _bh = sorted((_s * 0.1330, _s * 0.1372))
+    _chan += [
+        bay_box(-0.02, 0.288, _lo, _hi, 0.1075, 0.1145, color=STEEL),                      # bottom rail
+        bay_box(-0.02, 0.288, _wl, _wh, 0.1075, 0.1555, color=STEEL),                      # web
+    ]
+    if _s > 0:
+        _chan.append(bay_box(0.126, 0.136, _bl, _bh, 0.1145, 0.1200, color=STEEL))         # block, left (dog drops onto it)
+    else:
+        _chan.append(bay_box(0.126, 0.136, _bl, _bh, 0.1450, 0.1555, color=STEEL))         # block, right (dog rises into it)
+_b.link("bay", [
     bay_box(0.0, 0.30, -0.158, 0.158, 0.0, 0.085),                  # plinth
     bay_box(0.0, 0.30, 0.1454, 0.158, 0.085, 0.20),                 # side walls
     bay_box(0.0, 0.30, -0.158, -0.1454, 0.085, 0.20),
     bay_box(0.0, 0.30, -0.158, 0.158, 0.19, 0.20),                  # top
     bay_box(0.288, 0.30, -0.158, 0.158, 0.085, 0.20),               # back
-    lk.box((0.25, 0.0127, 0.035), (0.145, 0.1391, 0.1325), color=STEEL),   # bay-side slide members
-    lk.box((0.25, 0.0127, 0.035), (0.145, -0.1391, 0.1325), color=STEEL),
-], mass=8.0)
+] + _chan, mass=8.0)
+BAY = _b.build()
+
+# Drawer: a free articulation (drawer body + two levers). Design pose = closed; placed START_EXT out.
+_t = lk.Tree("drawer", pos=(B - START_EXT, 0.0, TOP), color=PLY)
 _t.link("drawer", [
     bx(0.0, 0.015, -0.12, 0.12, 0.0, 0.060),                        # front (inset)
     bx(0.015, 0.28, -0.12, 0.12, 0.0, 0.006),                       # bottom
     bx(0.015, 0.28, 0.108, 0.12, 0.0, 0.065),                       # walls
     bx(0.015, 0.28, -0.12, -0.108, 0.0, 0.065),
     bx(0.268, 0.28, -0.12, 0.12, 0.0, 0.065),                       # back
-    bx(0.015, 0.07, 0.12, 0.145, 0.060, 0.065),                     # left flange (on top)
-    bx(0.015, 0.07, -0.145, -0.12, 0.0, 0.005),                     # right flange (underneath)
-    lk.box((0.23, 0.0127, 0.035), (0.155, 0.12635, 0.1325), color=STEEL),   # inner slide members
+    bx(0.015, 0.07, 0.12, 0.1235, 0.0, 0.065, color=STEEL),         # left bracket leg and flange (on top)
+    bx(0.015, 0.07, 0.1235, 0.145, 0.060, 0.065, color=STEEL),
+    bx(0.015, 0.07, -0.1235, -0.12, 0.034, 0.039, color=STEEL),     # right bracket: flange with a slot for the stem
+    bx(0.015, 0.07, -0.145, -0.1368, 0.034, 0.039, color=STEEL),
+    bx(0.015, 0.07, -0.1330, -0.1235, 0.034, 0.039, color=STEEL),
+    lk.box((0.23, 0.0127, 0.035), (0.155, 0.12635, 0.1325), color=STEEL),   # inner slide members (on the rails)
     lk.box((0.23, 0.0127, 0.035), (0.155, -0.12635, 0.1325), color=STEEL),
-], mass=1.2, color=PLY, contact_offset=0.001)
-_t.link("levL", [bx(0.012, 0.040, 0.1332, 0.1372, -0.012, 0.030),
-                 bx(0.010, 0.045, 0.120, 0.145, -0.012, -0.009)], mass=0.02, color=RED, contact_offset=0.001)
-_t.link("levR", [bx(0.012, 0.040, -0.1372, -0.1332, 0.030, 0.077),
-                 bx(0.010, 0.045, -0.145, -0.120, 0.074, 0.077)], mass=0.02, color=BLUE, contact_offset=0.001)
-_t.prismatic("slide", "bay", "drawer", anchor=(0.0, 0.0, Z0), axis=(-1, 0, 0), limits=(LO, STOP), init=START_EXT,
-             stiffness=0.0, damping=3.0, friction=0.5)
-_t.prismatic("pressL", "drawer", "levL", anchor=(0.0275, 0.12, Z0 - 0.01), axis=(0, 0, 1), limits=(0.0, TRAVEL),
+], mass=1.2, color=PLY, contact_offset=0.001, friction=0.5)
+_t.link("levL", [bx(0.010, 0.045, 0.1235, 0.145, 0.031, 0.034),               # tab (pushed UP, pad span to flange 34 mm)
+                 bx(0.045, 0.278, 0.1330, 0.1368, 0.028, 0.036),              # latch bar along the member
+                 bx(0.266, 0.278, 0.1330, 0.1368, 0.0165, 0.036)],            # dog (hangs down at the rear)
+        mass=0.02, color=RED, contact_offset=0.001)
+_t.link("levR", [bx(0.010, 0.045, -0.145, -0.1235, 0.065, 0.068),             # tab (pushed DOWN)
+                 bx(0.045, 0.052, -0.1368, -0.1330, 0.0285, 0.068),           # stem through the flange slot
+                 bx(0.052, 0.278, -0.1368, -0.1330, 0.0285, 0.0375),          # latch bar
+                 bx(0.266, 0.278, -0.1368, -0.1330, 0.0285, 0.0485)],         # dog (stands up at the rear)
+        mass=0.02, color=BLUE, contact_offset=0.001)
+_t.prismatic("pressL", "drawer", "levL", anchor=(0.0275, 0.134, Z0 + 0.0325), axis=(0, 0, 1), limits=(0.0, TRAVEL),
              stiffness=1200.0, damping=8.0)
-_t.prismatic("pressR", "drawer", "levR", anchor=(0.0275, -0.12, Z0 + 0.075), axis=(0, 0, -1), limits=(0.0, TRAVEL),
+_t.prismatic("pressR", "drawer", "levR", anchor=(0.0275, -0.134, Z0 + 0.0665), axis=(0, 0, -1), limits=(0.0, TRAVEL),
              stiffness=1200.0, damping=8.0)
 DRAWER = _t.build()
-OBJECTS = [DRAWER]
+OBJECTS = [BAY, DRAWER]
+
+_CORNERS = [(x, y, z) for x in (0.0, D_LEN) for y in (-0.145, 0.145) for z in (Z0, Z0 + 0.068)]
+_BOTTOM = [(x, y, Z0) for x in (0.0, D_LEN) for y in (-0.12, 0.12)]
 
 
 def measure(d, tools) -> dict:
+    bz = [float(d.point("drawer", p)[2]) - TOP for p in _BOTTOM]
+    rear = max(float(d.point("drawer", p)[0]) for p in _CORNERS)
     return {
-        "ext": float(d.q["slide"]), "lL": float(d.q["pressL"]), "lR": float(d.q["pressR"]),
+        "lL": float(d.q["pressL"]), "lR": float(d.q["pressR"]),
+        "rear_x": rear, "bottom_z": bz,
         "d_speed": float(d.max_speed()),
         "clear": {s: float(lk.clearance(tools[s], d)) for s in ("left", "right")},
         "tcp_speed": {s: float(tools[s].speed) for s in ("left", "right")},
     }
+
+
+def off_slides(m: dict) -> bool:
+    return m["rear_x"] <= B - BAY_CLEAR
+
+
+def on_table(m: dict) -> bool:
+    return all(abs(z) <= FLAT_TOL for z in m["bottom_z"])
 
 
 class Record:
@@ -130,60 +166,44 @@ class Record:
         self.n += 1
         self.last = m
         H.ever("both_pressed", m["lL"] >= ON and m["lR"] >= ON)
-        H.ever("past_stop", m["ext"] >= PAST)
-        H.peak("ext_max", m["ext"])
         H.peak("lL_max", m["lL"])
         H.peak("lR_max", m["lR"])
-        H.held("out_still", m["ext"] >= CLEARED and m["d_speed"] < DRAWER_STILL)
+        H.held("down", off_slides(m) and on_table(m) and m["d_speed"] < DRAWER_STILL)
         H.held("released", bool(m["clear"]) and min(m["clear"].values()) >= CLEAR_M
                and max(m["tcp_speed"].values()) < TCP_STILL)
 
 
 def ladder(rec: Record) -> tuple[float, str]:
+    """Final state only: where the drawer is at the end. Nothing earlier in the run is held against it."""
     H, m = rec.H, rec.last
     if m is None:
         return 0.0, "no steps yet"
-    if "both_pressed" not in H.evers:
-        return 0.0, "the two levers were never pressed at the same time"
-    if "past_stop" not in H.evers:
-        return 0.25, "both levers were pressed together, but the drawer never passed the stop"
-    ends = {
-        "drawer out 280 mm and still 1 s": H.runs.get("out_still", 0.0) >= STILL_S - EPS,
-        "both grippers 30 mm clear and still 1 s": H.runs.get("released", 0.0) >= RELEASE_S - EPS,
-    }
-    if m["ext"] >= CLEARED and ends["drawer out 280 mm and still 1 s"]:
-        if ends["both grippers 30 mm clear and still 1 s"]:
-            return 1.0, "drawer out of its slides, at rest, both grippers let go"
-        return 0.75, "drawer out and at rest; not yet: both grippers 30 mm clear and still 1 s"
-    return 0.5, "the drawer passed the stop but is not out and at rest at the end"
+    if not off_slides(m):
+        return 0.0, "the drawer is still on its slides at the end"
+    if not (on_table(m) and H.runs.get("down", 0.0) >= HOLD_S - EPS and m["d_speed"] < DRAWER_STILL):
+        return 0.25, "the drawer is off both slides but not flat on the table and at rest for 1 s"
+    if H.runs.get("released", 0.0) >= HOLD_S - EPS:
+        return 1.0, "drawer off both slides, flat on the table, at rest, both grippers let go"
+    return 0.5, "drawer off the slides and at rest on the table; not yet: both grippers 30 mm clear and still 1 s"
 
 
 REC = Record()
-LATCH = {"free": False}
 
 
 @lk.on_reset
 def _reset(tick):
     REC.reset()
-    LATCH["free"] = False
 
 
 @lk.on_step
 def _track(tick):
     d = tick.states["drawer"]
     m = measure(d, tick.tools)
-    both = m["lL"] >= ON and m["lR"] >= ON
-    ext = m["ext"]
-    if not LATCH["free"] and both and ext >= STOP - 0.003:
-        lk.set_limits("drawer", "slide", LO, FREE_HI)
-        LATCH["free"] = True
-    elif LATCH["free"] and not both and ext < DOG:  # let go before the members are past the dog: it drops back in
-        lk.set_limits("drawer", "slide", LO, STOP)
-        LATCH["free"] = False
     REC.update(m)
     if REC.n % 5 == 0:
-        REC.trace.append((round(tick.t, 2), round(1000 * ext, 1), round(1000 * m["lL"], 2), round(1000 * m["lR"], 2),
-                          int(LATCH["free"]), [round(1000 * m["clear"][s]) for s in ("left", "right")]))
+        REC.trace.append((round(tick.t, 2), round(1000 * (B - m["rear_x"] + D_LEN), 1), round(1000 * m["lL"], 2),
+                          round(1000 * m["lR"], 2), [round(1000 * z) for z in m["bottom_z"]],
+                          [round(1000 * m["clear"][s]) for s in ("left", "right")]))
 
 
 def score(objects) -> float:
@@ -209,13 +229,17 @@ def demo_report() -> dict:
 
 # -- scripted demo ----------------------------------------------------------------------------------------------
 
-VARIANTS = ("", "nothing", "left_only", "right_only")
-SQUEEZE_W = 0.0685
+VARIANTS = ("", "nothing", "left_only", "right_only", "pull_release")
+SQUEEZE_W = 0.0255
+OPEN_W = 0.094
+LET_GO_W = 0.045
 CONTACT = 0.0115  # pad contact centre past the TCP along the approach
 PITCH = 15.0  # deg the approach points down
-PULL = 0.095
-LEFT_Z = 0.0265
-RIGHT_Z = 0.0385
+PULL = 0.183  # 129 -> 312 mm out: the drawer's rear is 32 mm clear of the rails
+PULL_RELEASE = 0.095  # the old shortcut: pull a bit and let go
+LOWER = 0.098
+LEFT_Z = 0.048  # mid-height of the pad pair (tab underside 31 mm, flange top 65 mm)
+RIGHT_Z = 0.051  # (flange underside 34 mm, tab top 68 mm)
 WALL_MID = 0.1325
 LEV_X = 0.0275
 
@@ -236,28 +260,32 @@ def demo_script(ctx):
     var = VARIANT
     use_left = var not in ("nothing", "right_only")
     use_right = var not in ("nothing", "left_only")
-    pull = PULL
 
-    def side(arm, c, rot, sgn, use):
+    def side(arm, c, rot, use):
         if not use:
             return
         tcp = c - a * CONTACT
         out = tcp - np.array([0.08, 0.0, 0.0])
-        yield from arm.move(out, rot, width=0.094, duration=3.0)
+        yield from arm.move(out, rot, width=OPEN_W, duration=3.0)
         yield from arm.move(out, rot, duration=1.0)
-        yield from arm.move(tcp, rot, width=0.094, duration=1.5)
+        yield from arm.move(tcp, rot, width=OPEN_W, duration=1.5)
         yield from arm.grip(SQUEEZE_W, 1.0)
         yield from arm.wait(0.5)
-        if var == "tap_release":
-            yield from arm.grip(0.094, 0.6)
-            yield from arm.wait(1.0)
-            yield from arm.move(tcp - [pull, 0, 0], rot, duration=2.0)
+        if var == "pull_release":
+            yield from arm.move(tcp - [PULL_RELEASE, 0.0, 0.0], rot, duration=5.0)
+            yield from arm.wait(0.5)
+            yield from arm.grip(OPEN_W, 0.6)
+            yield from arm.move(tcp - [PULL_RELEASE + 0.07, 0.0, 0.0], rot, duration=1.5)
             return
-        yield from arm.move(tcp - [pull, 0.0, 0.0], rot, duration=5.0)
+        yield from arm.move(tcp - [PULL - 0.03, 0.0, 0.0], rot, duration=6.0)   # dogs pass their blocks
+        yield from arm.move(tcp - [PULL, 0.0, 0.0], rot, duration=2.0)           # the rear leaves the rails
+        down = tcp - [PULL, 0.0, LOWER]
+        yield from arm.move(down, rot, duration=4.0)                              # set it down on the table
+        yield from arm.wait(1.0)
+        yield from arm.grip(LET_GO_W, 1.0)
         yield from arm.wait(0.5)
-        yield from arm.grip(0.094, 0.6)
-        yield from arm.move(tcp - [pull + 0.07, 0.0, 0.0], rot, duration=1.5)
+        yield from arm.move(down + [0.0, 0.0, 0.09], rot, duration=1.5)
 
-    yield from ctx.both(side(ctx.left, P((LEV_X, WALL_MID, LEFT_Z)), r_left, +1, use_left),
-                        side(ctx.right, P((LEV_X, -WALL_MID, RIGHT_Z)), r_right, -1, use_right))
+    yield from ctx.both(side(ctx.left, P((LEV_X, WALL_MID, LEFT_Z)), r_left, use_left),
+                        side(ctx.right, P((LEV_X, -WALL_MID, RIGHT_Z)), r_right, use_right))
     yield from ctx.wait(4.0)

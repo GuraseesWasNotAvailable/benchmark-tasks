@@ -9,11 +9,13 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import task as T  # noqa: E402
 
 DT = 0.05
+ON_RAILS_REAR = T.B - 0.129 + 0.28  # rear x with the drawer 129 mm out
+OFF_REAR = T.B - 0.30 + 0.28  # rear x with the drawer 300 mm out (off the rails and clear of the bay)
 
 
 def sample(**kw):
-    m = {"ext": 0.199, "lL": 0.0, "lR": 0.0, "d_speed": 0.0, "clear": {"left": 0.08, "right": 0.08},
-         "tcp_speed": {"left": 0.0, "right": 0.0}}
+    m = {"lL": 0.0, "lR": 0.0, "rear_x": ON_RAILS_REAR, "bottom_z": [0.1] * 4, "d_speed": 0.0,
+         "clear": {"left": 0.08, "right": 0.08}, "tcp_speed": {"left": 0.0, "right": 0.0}}
     m.update(kw)
     return m
 
@@ -31,17 +33,16 @@ def secs(m, s):
     return [m] * int(round(s / DT))
 
 
-def pressed(**kw):
-    return sample(lL=0.006, lR=0.006, clear={"left": 0.0, "right": 0.0}, **kw)
+def down(**kw):
+    return sample(**{"rear_x": OFF_REAR, "bottom_z": [0.0, 0.001, -0.001, 0.0], **kw})
 
 
 def full_run():
-    out = secs(sample(), 1.0) + secs(pressed(), 1.0)
-    out += [pressed(ext=0.199 + 0.1 * k / 40, d_speed=0.1) for k in range(40)]
-    out += secs(pressed(ext=0.294), 0.5)
-    out += secs(sample(ext=0.294, clear={"left": 0.005, "right": 0.005}), 0.5)
-    out += secs(sample(ext=0.294), 2.0)
-    return out
+    pressed = sample(lL=0.006, lR=0.006, clear={"left": 0.0, "right": 0.0})
+    held = sample(lL=0.006, lR=0.006, rear_x=OFF_REAR, bottom_z=[0.05] * 4, d_speed=0.1,
+                  clear={"left": 0.0, "right": 0.0})
+    held_down = down(lL=0.006, lR=0.006, clear={"left": 0.0, "right": 0.0})
+    return secs(sample(), 1.0) + secs(pressed, 1.0) + secs(held, 2.0) + secs(held_down, 2.0) + secs(down(), 3.0)
 
 
 def test_nothing_scores_zero():
@@ -50,21 +51,33 @@ def test_nothing_scores_zero():
 
 def test_one_lever_alone_scores_zero():
     for lever in ("lL", "lR"):
-        m = sample(**{lever: 0.006})
-        assert T.ladder(feed(secs(m, 5.0)))[0] == 0.0
+        assert T.ladder(feed(secs(sample(**{lever: 0.006}), 5.0)))[0] == 0.0
 
 
-def test_lever_below_threshold_scores_zero():
-    assert T.ladder(feed(secs(sample(lL=0.004, lR=0.004), 3.0)))[0] == 0.0
+def test_drawer_hanging_on_the_slides_scores_zero():
+    # pulled to 280 mm and let go, but its rear still in the channel (the old "extension and clearance" shortcut)
+    m = sample(rear_x=T.B - 0.26 + 0.28, bottom_z=[0.02, 0.02, 0.13, 0.13])
+    assert T.ladder(feed(secs(m, 5.0)))[0] == 0.0
 
 
-def test_levers_alternately_never_together_scores_zero():
-    rec = feed(secs(sample(lL=0.006), 2.0) + secs(sample(lR=0.006), 2.0))
-    assert T.ladder(rec)[0] == 0.0
+def test_drawer_rear_barely_off_the_rail_is_still_zero():
+    m = down(rear_x=T.B - 0.005)
+    assert T.ladder(feed(secs(m, 5.0)))[0] == 0.0
 
 
-def test_both_pressed_but_stop_not_passed_is_quarter():
-    assert T.ladder(feed(secs(pressed(), 2.0) + secs(sample(), 2.0)))[0] == 0.25
+def test_off_the_slides_but_held_in_the_air_is_quarter():
+    m = sample(rear_x=OFF_REAR, bottom_z=[0.06] * 4, clear={"left": 0.0, "right": 0.0})
+    assert T.ladder(feed(secs(m, 5.0)))[0] == 0.25
+
+
+def test_off_the_slides_but_tilted_on_the_table_is_quarter():
+    m = down()
+    m["bottom_z"] = [0.0, 0.0, 0.03, 0.03]
+    assert T.ladder(feed(secs(m, 5.0)))[0] == 0.25
+
+
+def test_down_but_still_moving_is_quarter():
+    assert T.ladder(feed(secs(down(d_speed=0.05), 5.0)))[0] == 0.25
 
 
 def test_full_run_is_one():
@@ -72,35 +85,30 @@ def test_full_run_is_one():
     assert score == 1.0, why
 
 
-def test_passed_stop_but_pushed_back_is_half():
-    rec = feed(full_run() + secs(sample(ext=0.21), 3.0))
+def test_gripper_still_on_the_drawer_is_half():
+    rec = feed(secs(down(clear={"left": 0.0, "right": 0.0}), 4.0))
     assert T.ladder(rec)[0] == 0.5
-
-
-def test_out_but_moving_is_half():
-    rec = feed(secs(pressed(), 1.0) + secs(pressed(ext=0.29, d_speed=0.1), 3.0))
-    assert T.ladder(rec)[0] == 0.5
-
-
-def test_gripper_still_on_the_drawer_caps_at_three_quarters():
-    rec = feed(secs(pressed(), 1.0) + secs(pressed(ext=0.29), 3.0))
-    assert T.ladder(rec)[0] == 0.75
 
 
 def test_release_needs_one_second_clear_and_still():
-    rec = feed(secs(pressed(), 1.0) + secs(pressed(ext=0.29), 1.5) +
-               secs(sample(ext=0.29, tcp_speed={"left": 0.0, "right": 0.05}), 3.0))
-    assert T.ladder(rec)[0] == 0.75
-
-
-def test_short_of_clearance_is_half():
-    rec = feed(secs(pressed(), 1.0) + secs(sample(ext=0.25), 3.0))
+    rec = feed(secs(down(clear={"left": 0.0, "right": 0.0}), 2.0) +
+               secs(down(tcp_speed={"left": 0.0, "right": 0.05}), 3.0))
     assert T.ladder(rec)[0] == 0.5
 
 
-def test_history_survives_letting_go():
-    rec = feed(secs(pressed(), 1.0) + secs(sample(), 3.0))
-    assert "both_pressed" in rec.H.evers and T.ladder(rec)[0] == 0.25
+def test_one_gripper_not_clear_is_half():
+    rec = feed(secs(down(clear={"left": 0.08, "right": 0.01}), 4.0))
+    assert T.ladder(rec)[0] == 0.5
+
+
+def test_final_state_only_a_wrong_first_try_is_not_held_against_it():
+    rec = feed(secs(sample(lL=0.006, rear_x=T.B - 0.2 + 0.28), 2.0) + full_run())
+    assert T.ladder(rec)[0] == 1.0
+
+
+def test_drawer_pushed_back_onto_the_slides_at_the_end_is_zero():
+    rec = feed(full_run() + secs(sample(), 2.0))
+    assert T.ladder(rec)[0] == 0.0
 
 
 def test_reset_clears_history():

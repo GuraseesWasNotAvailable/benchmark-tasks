@@ -32,9 +32,9 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`)
-- for the Dream-1 trial: inspect-robots-dream VERSION, yam-arena COMMIT, task file SHA12 (equals
+- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- task file SHA-256, first 12 hex: 70e1c63cf9f3 (`sha256sum task.py | cut -c1-12`)
+- for the Dream-1 trial: inspect-robots-dream 1.0.0, yam-arena 0059d02a1a91, task file 70e1c63cf9f3 (equals
   `eval.environment_revision` in the Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
@@ -104,7 +104,7 @@ shaft axis, the groove core being 5.5 mm), the collar at 0.0 mm, tilt 8.7 deg, o
 105 mm clear. Worst IK error 0.1 mm and 0.01 deg. In an earlier run of this demo with the previous scorer the flange stopped 3.4 mm short with the pawl on the
 shaft's shoulder and the old scorer still gave 1.0; see Revision.
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (70e1c63cf9f3); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
@@ -173,8 +173,8 @@ the video shows. The simulation's engagement check (above) stands in for this pu
 - Demo: `python linkdemo.py task.py demo_out`, `demo_out/result.json`: `task_score = 1.0`, success at step 859. The video
   is `demo_out/top_cam.mp4` (with `left_cam.mp4` and `right_cam.mp4`) and the screenshot `demo_out/setup.png` (frame 0
   of the top camera).
-- Dream-1 run: score VALUE, ended with REASON after STEPS steps, about MINUTES minutes wall clock, log LOG.json, on this
-  `task.py` (SHA12).
+- Dream-1 run: score 0.0, ended with max_steps after 1200 steps, about 9 minutes wall clock, log adhoc_bbe8201a.json, on this
+  `task.py` (70e1c63cf9f3).
 
 ```bash
 inspect-robots inspect <log>.json

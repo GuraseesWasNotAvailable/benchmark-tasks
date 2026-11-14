@@ -19,5 +19,6 @@
   "run_limit": "1,200 steps (1 minute at 20 Hz)",
   "reset_notes": "Nothing is consumed. Pull the collar back and withdraw the nipple, let the collar spring fully forward (0 mm) and check by feeler that the pawl rests down. Lay the hose straight from the clamp post along yaw -18 deg on a taped outline, the fitting's flange face centred at (0.157, -0.083) with its nose pointing along the same line. The coupler and clamp post are fixed on taped outlines and need no reset.",
   "fidelity": "Rigid parts. The ball lock is one steel pawl and a sleeve land (a real coupler has several balls); the bore is square (20 mm) around a round shaft for the rigid-contact solver; the hose is 5 stiff links, 0.20 m long, anchored near the table (a real hose is longer and softer); the collar spring is light (4.2 N at full stroke) to suit the arm's pull.",
-  "scores": "Dream-1 run: TBD; demo: 1.0"
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-75DJAS"
 }

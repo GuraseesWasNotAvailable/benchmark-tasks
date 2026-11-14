@@ -31,10 +31,10 @@ Files in this folder: `task.json`, `task.py` (scene, whole-run record, scoring a
 Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, one L40S). Versions used for the
 submitted runs:
 
-- inspect-robots VERSION (`inspect-robots --version`)
-- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- inspect-robots 1.0.0 (`inspect-robots --version`)
+- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
 - inspect-robots-dream 0.1.0, Dream checkpoint `dreamlabs/dream-1-beta`
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
+- task file SHA-256, first 12 hex: ff25af11a60e (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
   log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
@@ -77,17 +77,17 @@ with `termination_reason="success"`; otherwise it is the task file's `score()` a
 (`SCORE_OVER = "end"`). Repeat trials: add `--epochs K`; with `object_jitter=0` the seed changes nothing in the scene.
 
 ```bash
-inspect-robots inspect LOG.json
-jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, limit: .eval.max_steps, seed: .eval.seed, task_sha12: .eval.environment_revision}' LOG.json
+inspect-robots inspect adhoc_69b6539c.json
+jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, limit: .eval.max_steps, seed: .eval.seed, task_sha12: .eval.environment_revision}' adhoc_69b6539c.json
 ```
 
 ## Scored runs
 
 | Run | yam-isaac-lab-arena | Commit | task.py sha256 (12) | Steps | Wall time | Log | task_score | Reason |
 |---|---|---|---|---|---|---|---|---|
-| Dream-1 | VERSION | COMMIT | SHA12 | STEPS | MINUTES min | LOG.json | VALUE | REASON |
-| Scripted demo, recorded (`linkdemo.py`) | VERSION | COMMIT | SHA12 | 865 (success held 1 s) | about 9 min | result.json | 1.0 | reveals 4.44 / 4.56 mm, flush, released |
-| Scripted demo, repeat (`--no-record`) | VERSION | COMMIT | SHA12 | 865 (success held 1 s) | about 8 min | result.json | 1.0 | same state to 0.01 mm |
+| Dream-1 | 1.0.0 | 0059d02a1a91 | ff25af11a60e | 1200 | 4 min | adhoc_69b6539c.json | 0.0 | max_steps |
+| Scripted demo, recorded (`linkdemo.py`) | 1.0.0 | 0059d02a1a91 | ff25af11a60e | 865 (success held 1 s) | about 9 min | result.json | 1.0 | reveals 4.44 / 4.56 mm, flush, released |
+| Scripted demo, repeat (`--no-record`) | 1.0.0 | 0059d02a1a91 | ff25af11a60e | 865 (success held 1 s) | about 8 min | result.json | 1.0 | same state to 0.01 mm |
 
 ## Scripted demo and cheat variants
 
@@ -231,10 +231,10 @@ third-party assets or brands.
 Reviewer point (TK-QZ2S3Z, feasibility, not met): the recorded demo listed a task.py hash different from the submitted
 Dream-1 run, so the full-score demonstration of the submitted version was unverified.
 
-- Hashes: every task-file hash in this README (the Dream-1 row and both demo rows) is now the single value SHA12, the
-  sha256 of the one filed `task.py`; the yam-arena commit is COMMIT. `task.py` itself is unchanged in this revision,
+- Hashes: every task-file hash in this README (the Dream-1 row and both demo rows) is now the single value ff25af11a60e, the
+  sha256 of the one filed `task.py`; the yam-arena commit is 0059d02a1a91. `task.py` itself is unchanged in this revision,
   so the scoring, the scene and the 1.0 demonstration are the same file as the Dream-1 trial.
 - Demonstration: the scripted demo and every cheat variant were re-run in the simulator on this exact `task.py`: the
   demo scores 1.0 (success held 1 s, inside the 1,200-step limit) and `nothing`, `depth_screw`, `clamp_first`,
-  `wrong_way` and `overturn` each score 0. The Dream-1 log's `eval.environment_revision` equals the demo's SHA12.
+  `wrong_way` and `overturn` each score 0. The Dream-1 log's `eval.environment_revision` equals the demo's ff25af11a60e.
 - Left unchanged on purpose: the reviewer named no loophole, so no new cheat was needed; the five existing cheats stay.

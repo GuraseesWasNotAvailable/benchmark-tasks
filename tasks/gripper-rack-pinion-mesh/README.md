@@ -26,8 +26,8 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 demo and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`)
+- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- task file SHA-256, first 12 hex: 4a1d59fd43df (`sha256sum task.py | cut -c1-12`)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
 
@@ -68,8 +68,8 @@ Scoring is automatic. `task_score` reports 1.0 when the task file's `success()` 
 with `termination_reason="success"`; otherwise it is the task file's `score()` at the end of the episode
 (`SCORE_OVER = "end"`). With `object_jitter=0` the seed changes nothing in the scene.
 
-Dream-1 trial: on yam-arena at COMMIT with task file SHA12, the run took STEPS control steps
-and MINUTES minutes of wall clock, log `LOG.json`; `task_score` VALUE, ended because REASON.
+Dream-1 trial: on yam-arena at 0059d02a1a91 with task file 4a1d59fd43df, the run took 1200 control steps
+and 4 minutes of wall clock, log `adhoc_c23125b9.json`; `task_score` 0.0, ended because max_steps.
 
 ## Scripted demo and cheat variants
 
@@ -196,7 +196,7 @@ dark grey ABS, 0.3 kg. Masses are the simulator's values. No third-party assets;
 
 - Demo: `python linkdemo.py task.py demo_out`, `demo_out/result.json`: `task_score = 1.0`, success at step 986. The
   video is `demo_out/top_cam.mp4` (with `left_cam.mp4` and `right_cam.mp4`) and the screenshot `demo_out/setup.png`.
-- Dream-1 run: `LOG.json`, `task_score = VALUE`, ended by `REASON` after STEPS steps (MINUTES min).
+- Dream-1 run: `adhoc_c23125b9.json`, `task_score = 0.0`, ended by `max_steps` after 1200 steps (4 min).
 
 ## Revision
 

@@ -18,5 +18,6 @@
   "run_limit": "1,200 steps (1 minute at 20 Hz)",
   "reset_notes": "Raise the lid to 25 deg (protractor on the hinge); the pawl catches it. Let the knob spring home (under 2 mm on the ruler). Nothing is consumed; the chest is fixed on taped outlines.",
   "fidelity": "Real stay: a 3 x 12 x 160 mm toothed steel rod (4 mm pitch) pinned to the lid, sliding in a guide on the left wall; a spring pawl bears on its teeth; a 3:1 bellcrank on a 3 mm pull rod to the knob lifts it 2 mm. Simulated as a hinge limit that lifts with the knob (6 mm out) and catches below 4 mm. Chest 160 mm, 4 kg, empty; lid a rigid plate on a pin hinge; no latch or contents.",
-  "scores": "Demo (scripted, python linkdemo.py task.py demo_out): 1.0, success at step 507 of 1,200. Cheat variants in Isaac Sim, same file: nothing, left_only, right_only, slam, fast all 0.0. Dream-1 run: made at filing."
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-LTXX8C"
 }

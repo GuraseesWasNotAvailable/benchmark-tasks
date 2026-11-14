@@ -53,9 +53,9 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 demo and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
 - inspect-robots-dream 0.1.0, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial)
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
+- task file SHA-256, first 12 hex: 270924715a1c (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
   Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
@@ -121,7 +121,7 @@ The demo scores 1.0 (`success`, episode ended at step 507 of 1,200): the knob pe
 still, peak free-edge speed 0.025 m/s, no pad in a pinch zone, both grippers clear and still with the knob home. Worst
 IK error 0.1 mm and 0.0 deg while grasping and lowering (5.7 mm and 0.6 deg on the final back-out).
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (270924715a1c); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
@@ -172,7 +172,7 @@ gate, read from the video; a ruler for the 30 mm release clearance; the video fo
 - Demo: `python linkdemo.py task.py demo_out`, `demo_out/result.json`: `task_score = 1.0`, success at step 507. The
   video is `demo_out/top_cam.mp4` (with `left_cam.mp4` and `right_cam.mp4`) and the screenshot `demo_out/setup.png`
   (frame 0 of the top camera).
-- Dream-1 run: score VALUE, REASON, STEPS steps, MINUTES minutes, log LOG.json.
+- Dream-1 run: score 0.0, max_steps, 1200 steps, 8 minutes, log adhoc_eb8b0cdc.json.
 
 ```bash
 inspect-robots inspect <log>.json

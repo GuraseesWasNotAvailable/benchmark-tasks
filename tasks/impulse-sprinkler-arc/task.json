@@ -1,0 +1,24 @@
+{
+  "title": "Set an impulse sprinkler's two trip collars to a 90-degree arc",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "irrigation",
+    "impulse sprinkler",
+    "trip collar",
+    "friction slip",
+    "hold against bearing",
+    "set an angle",
+    "groundskeeping",
+    "linkkit"
+  ],
+  "instruction": "Set the sprinkler's trip collars so the blue pin stands 90 degrees counter-clockwise from the red pin, seen from above, then let go.",
+  "context": "Landscaping and groundskeeping workers (BLS OEWS, SOC 37-3011, about 0.9 million in the US; O*NET 37-3011.00) install and adjust sprinklers as a regular duty. On an impulse sprinkler the watered arc is the angle between two friction trip collars on the head's ring. The head turns on its bearing more easily than a collar slips, so pushing one collar alone carries the head and the other collar round with it and the angle never changes. The head has to be held still while one collar is slid.",
+  "setup": "Station table; metres, x forward from the arm bases, y to the robot's left, z up; table top z 0.7475; the sprinkler axis is at (0.150, 0.000). (1) Soil tray with spike and riser, one fixed body, 6.0 kg (tray 200 x 200 x 30 mm; brass riser 28 mm dia, 50 mm tall above the soil, spike buried), colour sRGB (0.78, 0.62, 0.22) (one colour for the whole base body in the simulation), centred at (0.150, 0.000), soil top z 0.7775. (2) Swivel head: brass tube 32 mm dia, 84 mm tall from the soil +50 to +134 mm, with a 38 mm dia, 4 mm cap at +136 mm, 0.12 kg, sRGB (0.78, 0.62, 0.22), on a vertical bearing at +50 mm that turns at 0.004 N m (0.09 N tangent at a pin). (3) Red trip collar: plastic ring 49 mm dia, 10 mm tall at +52 to +62 mm, radial trip arm 30 x 10 x 6 mm (r 21 to 51 mm) and a vertical pin 8 mm dia, +56 to +90 mm, axis 45 mm from the sprinkler axis, 0.02 kg, sRGB (0.80, 0.10, 0.10); slips on the head at 0.06 N m (1.3 N at the pin). Start azimuth -150 deg (world +x = 0, counter-clockwise from above): pin at (0.111, -0.0225). (4) Blue trip collar: same, ring at +66 to +76 mm, arm at +70 to +76 mm, pin +70 to +90 mm, sRGB (0.10, 0.25, 0.80), 0.02 kg, start azimuth +50 deg: pin at (0.179, 0.0345). The blue pin starts 200 deg counter-clockwise of the red pin. Heights are above the soil top.",
+  "scoring": "Measured every control step from reset (a linkkit History cleared only by the simulator reset). arc = angle from the red pin counter-clockwise to the blue pin, seen from above, read from the two pins' positions about the sprinkler axis (start 200 deg; target 90 deg, tolerance 5 deg). 0.25: the arc was at some time 160 deg or less (closed 40 deg). 0.5: at the end the arc is within 20 deg of 90 (70 to 110). 0.75: at the end the arc is within 5 deg of 90 (85 to 95). 1.0: also the arc has been inside 85 to 95 and moving under 0.5 deg/s for the last 1 s, and every pad point of both grippers is 30 mm or more from the sprinkler and both grippers move under 5 mm/s for the last 1 s (release gate). Real trial: a printed 360 deg disc under the ring and a top photo or a protractor on the ring read the angle between the pin axes (90 +- 5 deg, 1 deg division); the arc is still if the pins move under 0.5 deg in 1 s; clearance by a 30 mm spacer card.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Slide the red collar so its pin is at azimuth -150 deg (toward the robot, to its right) and the blue collar so its pin is 200 deg counter-clockwise of it (+50 deg), using the printed disc. Check the head turns with 0.09 N on a pin (spring scale pulled tangent at 45 mm, collars not touched) and each collar slips at 1.3 N, plus or minus 0.2 N. The tray is fixed on a taped outline.",
+  "fidelity": "Rigid simplified sprinkler: no nozzle, swing arm, spring or water. The head is a plain 32 mm tube on a 0.004 N m bearing; the collars slip at 0.06 N m by joint friction (a real collar grips by a clamped ring or O-ring) with some added inertia and damping so the friction does not chatter. Spike and riser are fixed in a rigid soil block. Trip pins stand 45 mm from the axis and trip nothing.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-3EYDUB"
+}

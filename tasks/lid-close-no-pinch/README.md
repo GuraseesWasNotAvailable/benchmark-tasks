@@ -1,18 +1,36 @@
 # Lower a tool chest lid by its side handle while its stay release is held
 
-The robot closes the lid of a hand-carry tool chest that has a ratchet lid stay. The orange aluminium lid (1.3 kg, a
+The robot closes the lid of a hand-carry toolbox, a chore nearly every household has: in a garage, shed or van the lid
+is propped open on a ratchet stay and has to be put down without dropping it. The orange aluminium lid (1.3 kg, a
 226 x 472 x 4 mm plate with 20 mm lips) rests propped open at 25 deg. The stay lets the lid be raised but not lowered
 unless its red release knob (a spring-return pull tongue on the chest's left end wall) is held pulled out 6 mm or more.
 With the knob out the lid swings shut by itself, so it must be lowered slowly by its flat side handle (a pull tab on the
-lid's right side), with the grippers kept out of the gap under the plate and out of the hinge. At the end the lid rests
-flat on the rim, the knob has sprung home and both grippers have let go. Lids that fall shut are a common way to catch
-fingers in vans, shops and garages; electricians, automotive service technicians and general maintenance and repair
-workers (roughly 0.76, 0.65 and 1.5 million US workers, BLS) shut tool chest lids many times a day. This is the physical
-safety constraint a robot working in such a space has to respect.
+lid's right side), with the grippers kept out of the gap under the plate and out of the hinge, where a person's
+fingers would be. At the end the lid rests flat on the rim, the knob has sprung home and both grippers have let go.
+Category: Societal relatability (a familiar everyday household task).
+
+### The real ratchet stay, pawl and knob linkage (build it as follows)
+
+Frame: hinge line x 0.36, z 0.9075 (the rim); the stay is on the chest's left inner wall (y +0.224).
+
+| Part | Size, material | Mounting | Travel and behaviour |
+|---|---|---|---|
+| Toothed stay rod | 3 x 12 x 160 mm steel flat bar; sawtooth teeth, 4 mm pitch, 1.5 mm deep, on its last 60 mm | pinned to the inside of the lid's left lip by a 3 mm pin, 150 mm from the hinge line and 15 mm below the plate | slides 31 mm through the guide between shut and 25 deg open (pin to guide 76 mm shut, 107 mm at 25 deg) |
+| Guide block | 12 x 14 x 30 mm steel, 3.2 mm slot | pivots on a 3 mm pin in a bracket on the left inner wall, 80 mm in front of the hinge line and 45 mm below the rim | rocks about 25 deg with the rod |
+| Pawl | 2 mm steel plate, 10 mm wide, 3 mm pin in the guide | bears on the teeth under a 0.3 N leaf spring | ramps over the teeth when the lid is raised (any angle holds); blocks the lid going down |
+| Bellcrank | 2 mm steel, arms 24 mm and 8 mm (3:1) | pinned to the guide bracket | 6 mm of knob travel lifts the pawl 2 mm, clear of the 1.5 mm teeth; it drops back when travel falls under 4 mm |
+| Pull rod and knob | 3 mm steel rod through a 5 mm hole in the left end wall (centred x 0.20, z 0.08 above the table top (0.8275 in the station frame)); red 10 x 60 x 30 mm tongue outside | collar stops the rod at 20 mm out | 150 N/m extension spring, no preload: 0.9 N at 6 mm, 2.1 N at 14 mm, so the knob springs home when let go |
+
+Release behaviour: with the knob under 4 mm the lid can go up but not down; 6 mm or more out frees it (the lid then
+falls shut by itself unless held); letting the knob go part way re-engages the pawl at the next tooth below (a drop of
+up to 4 mm of rod travel, about 3 deg of lid angle). Verify the build: a 5 N spring scale on the knob reads about 0.9 N
+at 6 mm; the lid does not move down with the knob at 5 mm and does at 6 mm; a protractor on the hinge shows the stay
+holding the lid at any raised angle. The simulation models this as a hinge limit (see Materials).
 
 The ability is the controlled lowering of a self-closing hinged lid against a closing speed limit while the other hand
 holds a spring release open and the grippers stay out of the pinch gaps. Nothing latches or snaps and nothing is
-threaded.
+threaded. A slam is zeroed for good because a dropped 1.3 kg lid dents its rim and can hurt a
+hand, not merely for speed.
 
 Physics, not the instruction, forces both arm roles. The stay holds the lid at 25 deg whatever the tab arm does, so the
 tab arm alone never lowers the lid (it scores 0). The knob arm alone frees the lid, which then falls shut at several
@@ -35,9 +53,9 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 demo and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
 - inspect-robots-dream 0.1.0, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial)
-- task file SHA-256, first 12 hex: 270924715a1c (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
+- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
   Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
@@ -103,7 +121,7 @@ The demo scores 1.0 (`success`, episode ended at step 507 of 1,200): the knob pe
 still, peak free-edge speed 0.025 m/s, no pad in a pinch zone, both grippers clear and still with the knob home. Worst
 IK error 0.1 mm and 0.0 deg while grasping and lowering (5.7 mm and 0.6 deg on the final back-out).
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (270924715a1c); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
@@ -154,7 +172,7 @@ gate, read from the video; a ruler for the 30 mm release clearance; the video fo
 - Demo: `python linkdemo.py task.py demo_out`, `demo_out/result.json`: `task_score = 1.0`, success at step 507. The
   video is `demo_out/top_cam.mp4` (with `left_cam.mp4` and `right_cam.mp4`) and the screenshot `demo_out/setup.png`
   (frame 0 of the top camera).
-- Dream-1 run: score 0.0, max_steps, 1200 steps, 3 minutes, log adhoc_783ea36f.json.
+- Dream-1 run: score VALUE, REASON, STEPS steps, MINUTES minutes, log LOG.json.
 
 ```bash
 inspect-robots inspect <log>.json
@@ -170,7 +188,7 @@ jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, 
   and a flat 40 x 50 x 8 mm pull tab sticking out of its right side (centred at y -0.261), on a hinge along the line
   x 0.36, z 0.9075 (damping 0.02 N m s/rad, friction 0.8).
 - Ratchet lid stay: the lid starts open at 25 deg. It can be raised, and the stay then holds it at the new angle; it
-  cannot go down while the release knob is under 6 mm. Built as a joint limit that follows the lid and lifts when the
+  cannot go down while the release knob is under 6 mm. Built as a joint limit (the simulated stand-in for the rod, pawl and bellcrank above) that follows the lid and lifts when the
   knob is out 6 mm and catches again below 4 mm; in a real chest it is a ratchet rod with a pawl freed by a lever or
   cable from the knob.
 - Release knob: a red 10 x 60 x 30 mm pull tongue (0.05 kg, friction 1.5) on the left end wall, centred at x 0.20,
@@ -188,3 +206,19 @@ MIT. Copyright (c) 2026 the task authors. `task.py`, `linkkit.py`, `linkdemo.py`
 own code (SPDX header in each file; `linkkit.py` and `linkdemo.py` carry the full MIT text). They use only public
 Isaac Lab and USD Physics techniques, copy no code from other tasks in this repository, and the scene uses no
 third-party assets or brands.
+
+## Revision
+
+Reviewer points on this task, and what changed (task.py, linkkit.py and linkdemo.py are unchanged, so the demo, the
+cheat variants and the task file hash are as filed):
+
+1. Importance: the safety domain needs harm to a person, and the scene only has robot grippers; closing a toolbox
+   fits societal relatability. Changed: the category is now Societal relatability; the context and the opening of this
+   README explain the familiar household toolbox-closing chore; the "physical safety constraint" wording is gone.
+2. Clarity and reproducibility: the ratchet rod, pawl and knob linkage lacked dimensions, mounting and travel. Changed:
+   the section "The real ratchet stay, pawl and knob linkage" gives the rod, guide, pawl, bellcrank, pull rod and spring
+   with sizes, mounting points, travel (31 mm rod stroke, 6 mm and 4 mm knob thresholds, 2 mm pawl lift against 1.5 mm
+   teeth, 20 mm knob stop), release and re-engage behaviour, and how to verify it; task.json setup and fidelity say the
+   same.
+3. No loophole was named by the reviewer. The existing cheats (nothing, left_only, right_only, slam, fast) still score 0.
+

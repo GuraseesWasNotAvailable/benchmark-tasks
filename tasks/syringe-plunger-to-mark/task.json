@@ -1,0 +1,24 @@
+{
+  "title": "Draw a 10 mL syringe's plunger back to the 5 mL line, the syringe resting on its tray",
+  "category": "Impact on jobs",
+  "keywords": [
+    "bimanual",
+    "nurse",
+    "medical assistant",
+    "syringe",
+    "plunger",
+    "seal drag",
+    "graduation mark",
+    "medication preparation",
+    "linkkit"
+  ],
+  "instruction": "Draw the syringe's plunger back until its stopper sits on the 5 mL line, with the syringe resting on the tray, then let go.",
+  "context": "Registered nurses (29-1141, about 3.2 million US workers), licensed practical nurses (29-2061, about 0.63 million) and medical assistants (31-9092, about 0.74 million), BLS May 2023, draw a plunger back to a mark on a syringe's scale many times a shift when they measure a dose. The barrel lies loose on a tray and the stopper's seal drags about 5 N, far more than the barrel's friction, so one hand cannot do it: pulling the plunger alone slides the whole syringe, and holding the barrel alone moves nothing. One hand steadies the barrel, the other draws.",
+  "setup": "Station table, positions in metres (x forward from the arm bases, y to the robot's left, z up; table top z 0.7475). (1) Instrument tray: fixed, brushed stainless steel (grey 0.72, 0.74, 0.77), 300 x 160 x 20 mm, 2 mm sheet, 0.4 kg, floor and four walls, long side along y, centred at (0.18, 0.00). (2) Syringe, a standard 10 mL Luer syringe, free to move, lying on the tray floor at rest on its flange and thumb rest, axis along y, nozzle toward the robot's left, flange face at (0.18, -0.050), axis 14 mm above the table top: barrel clear polypropylene (light blue-grey), 12 flat 1 mm slats, 16 mm across flats, 100 mm long, end wall and 10 mm Luer nozzle (6.6 mm across), finger flange 34 x 24 x 3 mm, painted marks at 0, 5 (red) and 10 mL, 6.0 mm per mL, 6.0 g; plunger white polypropylene, cruciform rod 9 mm across, black rubber stopper 13.4 mm across and 8 mm long, round thumb rest 24 mm across and 3 mm thick, 4.5 g, pushed fully in (thumb rest 14 mm behind the flange). The stopper's seal drags 5 N in both directions (sliding joint, 5 N Coulomb friction). The loose syringe on the tray has about 0.05 N of friction. The plunger can draw 62.5 mm (10.4 mL). No other objects. object_jitter=0.",
+  "scoring": "Numeric ladder, checked from the top at the end of the run, after a gate. Gate (whole-run history, cleared only by the simulator reset): the syringe's flange, nozzle or thumb rest ever more than 10 mm outside the tray's floor area gives 0 for good. Draw v = plunger travel / 6.0 mm per mL, read from the stopper's front edge against the barrel marks. 0.25: the plunger was drawn to 4.75 mL or more at some time but the stopper is not on the line at the end. 0.5: at the end v is 5.0 +/- 0.25 mL (1.5 mm) but the syringe is not resting still on the tray for 1 s. 0.75: also resting (axis within 4 mm of its height on the tray floor, within 8 deg of horizontal, moving under 3 mm/s and 0.1 rad/s, all parts inside the tray's floor area) for 1 s, but a gripper is not released. 1.0: also both grippers 30 mm clear of the syringe and moving under 10 mm/s for 1 s (release gate); success must hold 1 s. Never drawn to 4.75 mL gives 0, so one arm alone (left only, right only, nothing) scores 0. Real trial: read the stopper's front edge on the 5 mL line with a ruler or by eye (within 1.5 mm, 0.25 mL); the syringe on the tray floor with a ruler and a protractor (axis within 4 mm of its resting height, 8 deg); the gate with a tape on the tray; 60 fps video for the 1 s stillness and for the 30 mm clear release; a spring scale on the thumb rest checks the seal drag at 4 to 6 N breakaway.",
+  "run_limit": "1,200 steps (1 minute at 20 Hz)",
+  "reset_notes": "Nothing is consumed. Push the plunger fully in (thumb rest 14 mm behind the flange), lay the syringe on the tray floor with its flange face 50 mm to the robot's right of the tray's centre line, axis along the long side, nozzle toward the robot's left, resting on the flange and thumb rest. Check the seal drag with a spring scale (4 to 6 N breakaway) and wipe the barrel.",
+  "fidelity": "Barrel is 12 flat 1 mm slats, not a smooth tube; the stopper is a rigid 13.4 mm cylinder and the seal drag a sliding joint with 5 N Coulomb friction (same breakaway and sliding), standing in for rubber interference. No liquid, air or needle. Marks are painted, 6.0 mm per mL. The scorer reads the plunger's joint; the demo uses only link poses. The tray is a plain 300 x 160 x 20 mm dish, not kidney-shaped.",
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-HHVUU9"
+}

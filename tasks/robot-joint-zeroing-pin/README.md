@@ -28,9 +28,9 @@ Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, o
 and cheat runs below:
 
 - inspect-robots 1.0.0 (`inspect-robots --version`)
-- yam-arena at commit COMMIT (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
+- yam-arena at commit 0059d02a1a91 (`git -C ~/yam-isaac-lab-arena rev-parse --short=12 HEAD`)
 - inspect-robots-dream 0.1.0, Dream checkpoint `dreamlabs/dream-1-beta` (for the Dream-1 trial)
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
+- task file SHA-256, first 12 hex: 1d64e228670e (`sha256sum task.py | cut -c1-12`; equals `eval.environment_revision` in the
   Dream-1 log)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
@@ -68,11 +68,11 @@ Scoring is automatic. `task_score` reports 1.0 when the task file's `success()` 
 with `termination_reason="success"`; otherwise it is the task file's `score()` at the end of the episode
 (`SCORE_OVER = "end"`). Repeat trials: add `--epochs K`; with `object_jitter=0` the seed changes nothing in the scene.
 
-Scored runs: STEPS steps, MINUTES min wall clock, log `LOG.json`, task_score VALUE, REASON.
+Scored runs: 1200 steps, 2 min wall clock, log `adhoc_3d48199d.json`, task_score 0.0, max_steps.
 
 ```bash
-inspect-robots inspect LOG.json
-jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, limit: .eval.max_steps, seed: .eval.seed, task_sha12: .eval.environment_revision}' LOG.json
+inspect-robots inspect adhoc_3d48199d.json
+jq '{status, scores: .samples[0].epochs, ends: .samples[0].termination_reasons, limit: .eval.max_steps, seed: .eval.seed, task_sha12: .eval.environment_revision}' adhoc_3d48199d.json
 ```
 
 ## Scoring
@@ -126,7 +126,7 @@ The demo scores 1.0 (success at step 551 of 1,200): pin home at 26.2 mm, link at
 Worst IK error 0.09 mm on the right arm; the left arm's error appears only in the final 40 mm back-off after the
 release.
 
-Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (SHA12); every one scores exactly 0:
+Variants (`DEMO_VARIANT`), each run in Isaac Sim with the submitted task file (1d64e228670e); every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|

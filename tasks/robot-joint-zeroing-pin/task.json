@@ -20,5 +20,6 @@
   "run_limit": "1,200 steps (1 minute at 20 Hz)",
   "reset_notes": "Nothing is consumed. Let the link rest on its -30 deg stop (can end 25 mm above the table), pull the pin back to its start (tip 15 mm before the link's near face) so the detent is released, and check both zero marks are clean. Move both grippers to the ready pose. The housing is bolted down and needs no reset.",
   "fidelity": "Rigid parts only. The pin is a sprung plunger sliding in a guide (cheeks and post), its O-ring detent modelled as a brake; the actuator can is a plain cylinder, with no cabling or gearbox drag beyond 0.004 N m of hinge friction. The window gives 0.5 mm of play each way (0.64 deg at 45 mm). Real zero pins and holes are often tighter.",
-  "scores": "Demo: 1.0 (scripted); Dream-1 run: made at filing."
+  "scores": "Dream-1 run: 0.0; demo: 1.0",
+  "media": "M-EVR9RE"
 }

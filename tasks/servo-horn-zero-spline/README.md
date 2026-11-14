@@ -29,9 +29,9 @@ Files in this folder: `task.json`, `task.py` (scene, whole-run record, scoring a
 Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, one L40S). Versions used for the demo
 and cheat runs below, and to be filled for the Dream-1 run:
 
-- inspect-robots VERSION
-- yam-arena at commit COMMIT
-- task file SHA-256, first 12 hex: SHA12 (`sha256sum task.py | cut -c1-12`)
+- inspect-robots 1.0.0
+- yam-arena at commit 0059d02a1a91
+- task file SHA-256, first 12 hex: b9cbff6a8bba (`sha256sum task.py | cut -c1-12`)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
 
@@ -67,10 +67,10 @@ Scoring is automatic: `task_score` is 1.0 when `success()` holds for 1.0 s and t
 `termination_reason="success"`; otherwise it is the task file's `score()` at the end (`SCORE_OVER = "end"`). With
 `object_jitter=0` the seed changes nothing in the scene.
 
-Dream-1 run: score VALUE in STEPS steps (MINUTES min wall clock), log LOG.json. If it is not 1.0: REASON.
+Dream-1 run: score 0.0 in 1200 steps (5 min wall clock), log adhoc_4e08b11d.json. If it is not 1.0: max_steps.
 
 ```bash
-inspect-robots inspect LOG.json
+inspect-robots inspect adhoc_4e08b11d.json
 ```
 
 ## Scripted demo and cheat variants

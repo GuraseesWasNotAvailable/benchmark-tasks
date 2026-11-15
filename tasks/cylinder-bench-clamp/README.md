@@ -210,3 +210,7 @@ MIT. Copyright (c) 2026 the task authors. `task.py`, `linkkit.py`, `linkdemo.py`
 code (SPDX header in each file; `linkkit.py` and `linkdemo.py` carry the full MIT text). They use only public Isaac Lab
 and USD Physics techniques, copy no code from other tasks in this repository, and the scene uses no third-party assets or
 brands.
+
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_94428f68.json` is the Dream-1 log; its `eval.environment_revision` is a9d6130a9f6f. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is a9d6130a9f6f, the same task.py.

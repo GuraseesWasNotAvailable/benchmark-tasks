@@ -1,0 +1,51 @@
+{
+ "task_score": 1.0,
+ "success": true,
+ "steps": 621,
+ "script_end_step": null,
+ "variant": "",
+ "ik_worst": {
+  "left": {
+   "mm": 0.08,
+   "deg": 0.01
+  },
+  "right": {
+   "mm": 0.09,
+   "deg": 0.02
+  }
+ },
+ "final_info": {
+  "success": true,
+  "distance": 0.0,
+  "score": 1.0
+ },
+ "report": {
+  "variant": "",
+  "rung": [
+   1.0,
+   "pin out, both grippers clear and still for 1 s"
+  ],
+  "evers": {
+   "released": 15.80000000000009
+  },
+  "pin_peak_mm": 17.21,
+  "pin_end_mm": 17.01,
+  "hands_run_s": 1.95,
+  "best_seat_run_s": 15.55,
+  "seen": {
+   "psi_deg": -0.08,
+   "seat_err": {
+    "dx": -0.16,
+    "dz": 0.0,
+    "gap": 0.01,
+    "tilt": 0.02
+   },
+   "pin_rise_mm": 17.58,
+   "body_rise_mm": 0.5
+  },
+  "trace": []
+ },
+ "reset_check": null,
+ "task_py_sha256_12": "d593e9926c64",
+ "task_py_sha_note": "SHA-256 prefix of task.py as printed on the run box just before this demo ran (the run log's vm sha line), from the same file the Dream-1 trial then ran"
+}

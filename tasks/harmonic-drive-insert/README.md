@@ -144,3 +144,7 @@ of the housing and wipe both toothed surfaces. The housing is bolted down.
 MIT. Copyright (c) 2026 the task authors. `task.py`, `linkkit.py`, `linkdemo.py` and `tests/test_scoring.py` are our
 own code (SPDX header in each file; `linkkit.py` and `linkdemo.py` carry the full MIT text), and the scene uses no
 third-party assets or brands.
+
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_dd3a1667.json` is the Dream-1 log; its `eval.environment_revision` is 2909d48f9886. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is 2909d48f9886, the same task.py.

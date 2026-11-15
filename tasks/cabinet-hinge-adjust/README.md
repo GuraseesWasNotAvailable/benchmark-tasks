@@ -238,3 +238,7 @@ Dream-1 run, so the full-score demonstration of the submitted version was unveri
   demo scores 1.0 (success held 1 s, inside the 1,200-step limit) and `nothing`, `depth_screw`, `clamp_first`,
   `wrong_way` and `overturn` each score 0. The Dream-1 log's `eval.environment_revision` equals the demo's ff25af11a60e.
 - Left unchanged on purpose: the reviewer named no loophole, so no new cheat was needed; the five existing cheats stay.
+
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_69b6539c.json` is the Dream-1 log; its `eval.environment_revision` is ff25af11a60e. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is ff25af11a60e, the same task.py.

@@ -222,3 +222,6 @@ cheat variants and the task file hash are as filed):
    same.
 3. No loophole was named by the reviewer. The existing cheats (nothing, left_only, right_only, slam, fast) still score 0.
 
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_eb8b0cdc.json` is the Dream-1 log; its `eval.environment_revision` is 270924715a1c. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is 270924715a1c, the same task.py.

@@ -235,3 +235,7 @@ Reviewer points (TK-GD5BJP) and what changed:
 ## Licence
 
 `task.py`, `linkkit.py`, `linkdemo.py` and `tests/test_scoring.py`: MIT, Copyright (c) 2026 the task authors.
+
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_bbe8201a.json` is the Dream-1 log; its `eval.environment_revision` is 70e1c63cf9f3. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is 70e1c63cf9f3, the same task.py.

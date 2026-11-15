@@ -219,3 +219,7 @@ Review of this task (not accepted), each point and what changed:
    bench) no longer zero the run for good; only the final state is scored, so a wrong first try that is undone costs
    nothing. `skip_close` is renamed `left_only`, `n_only` is `right_only`. The cheat table now also has `left_only` and
    `right_only`, which show what each arm alone achieves.
+
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_c23125b9.json` is the Dream-1 log; its `eval.environment_revision` is 4a1d59fd43df. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is 4a1d59fd43df, the same task.py.

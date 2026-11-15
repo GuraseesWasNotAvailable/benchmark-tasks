@@ -204,3 +204,7 @@ Real trial, with the tools to check each condition:
 - Fidelity: the barrel is a ring of flat slats, the stopper a rigid cylinder and the seal drag a joint friction; there
   is no liquid, air or needle. A real syringe's seal drag varies from one syringe to the next, so a real trial should
   pick syringes that read 4 to 6 N.
+
+## Run logs
+
+Both logs are committed with the task. `runs/adhoc_c34fb841.json` is the Dream-1 log; its `eval.environment_revision` is f0efd6462899. `runs/result.json` is the scripted demo's result; its `task_py_sha256_12` is f0efd6462899, the same task.py.

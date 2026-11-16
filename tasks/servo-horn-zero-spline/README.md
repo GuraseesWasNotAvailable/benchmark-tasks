@@ -12,9 +12,8 @@ the lift and the release) and not a puzzle (nothing to deduce: the mark is engra
 part, and the horn has to be turned by the wrist while held, carried 25 cm and centred over a 5.9 mm shaft to 0.8 mm).
 
 Physics, not the instruction, defeats the natural plan. The horn lies 68 deg from the mark, 4 deg from a spline position.
-Put on as picked it rests 1.5 mm proud on the tooth crests and cannot be pressed in. Turned while pressed, it drops in at the
-first index it passes, which is not the mark. A horn left seated on a wrong tooth scores 0; one pulled off again and
-refitted on the mark is scored by where it sits at the end.
+Put on as picked it rests 3.5 mm proud on the tooth crests and cannot be pressed in. Turned while pressed, it drops in at the
+first index it passes, which is not the mark. A horn left seated on a wrong tooth scores 0; the score reads the final state only.
 
 Instruction given to the policy (24 words, goal only):
 
@@ -27,17 +26,17 @@ Files in this folder: `task.json`, `task.py` (scene, whole-run record, scoring a
 ## Requirements
 
 Built on the program's Brev launchable (Isaac Lab-Arena, Isaac Sim, Isaac Lab, one L40S). Versions used for the demo
-and cheat runs below, and to be filled for the Dream-1 run:
+and cheat runs below:
 
 - inspect-robots 1.0.0
 - yam-arena at commit 0059d02a1a91
-- task file SHA-256, first 12 hex: b9cbff6a8bba (`sha256sum task.py | cut -c1-12`)
+- task file SHA-256, first 12 hex: 86a0e579223b (`sha256sum task.py | cut -c1-12`)
 
 Before every shell: `source ~/IsaacLab-Arena/yam.env` (on our VM, `/data/IsaacLab-Arena/yam.env`).
 
 `linkkit.py` and `linkdemo.py` must sit next to `task.py`. Importing `linkkit` installs an import hook that teaches
-`yam_arena.scene` to spawn the servo as a PhysX articulation (a fixed case with a spring-loaded seat ring on a prismatic
-joint) and the horn as a compound rigid body, and calls the task's per-step record after every control step. No fork of
+`yam_arena.scene` to spawn the servo as a PhysX articulation (a fixed case with a seat ring on a prismatic
+joint that slides under 32 N of joint friction) and the horn as a compound rigid body, and calls the task's per-step record after every control step. No fork of
 yam_arena and no third-party assets: every body is built from box and cylinder colliders in `task.py`.
 
 ## Offline check, no simulator
@@ -46,11 +45,11 @@ yam_arena and no third-party assets: every body is built from box and cylinder c
 python -m pytest -q tests
 ```
 
-21 tests feed synthetic records and poses to the scorer: a demo-shaped trace scores 1.0; nothing is 0; a horn left
+23 tests feed synthetic records and poses to the scorer: a demo-shaped trace scores 1.0; nothing is 0; a horn left
 seated on index 1 is 0; a horn seated on index 1, pulled off and refitted on the mark scores 1.0; one pulled off and
-dropped, or refitted on another tooth, is not 1.0; the seat window edge (1.9 vs 2.1 deg); the engagement window (2.0 deg
+dropped, or refitted on another tooth, is not 1.0; a horn aligned once and left misaligned scores 0, below the 0.25 of an aligned final state; the seat window edge (1.9 vs 2.1 deg); the engagement window (2.0 deg
 around each of the 25 indices, bore offset 0.8 mm, tilt 4 deg); the horn left on the crests at 68 deg scores 0; the 0.25
-rung needs a hold and the mark within 3 deg; the end limits (gap 0.5 mm, tilt 2 deg, offset 0.8 mm); the release gate
+rung needs the mark within 3 deg at the end; the end limits (gap 0.5 mm, tilt 2 deg, offset 0.8 mm); the release gate
 (30 vs 29 mm, 5 mm/s, 0.95 s vs 1.05 s); the horn still for the last second; a horn unseated again after seating loses
 the seated rungs; the record is clean after a reset; measure() on real 4x4 poses.
 
@@ -67,10 +66,10 @@ Scoring is automatic: `task_score` is 1.0 when `success()` holds for 1.0 s and t
 `termination_reason="success"`; otherwise it is the task file's `score()` at the end (`SCORE_OVER = "end"`). With
 `object_jitter=0` the seed changes nothing in the scene.
 
-Dream-1 run: score 0.0 in 1200 steps (5 min wall clock), log adhoc_4e08b11d.json. If it is not 1.0: max_steps.
+Dream-1 run: not run on this revision. The run box ran out of compute credits before the revised task.py could be trialled, so no Dream-1 score is claimed for it.
 
 ```bash
-inspect-robots inspect adhoc_4e08b11d.json
+inspect-robots inspect dream_log.json
 ```
 
 ## Scripted demo and cheat variants
@@ -89,22 +88,18 @@ the robot's own tool points); it never reads the seat ring, joint values or the 
 2. Lowers it onto the crests (0.4 mm), lets go, backs up, closes the fingers, centres the pads over the hub from the
    seen tool point and presses 22 mm past contact; the seat ring travels 1.5 mm and the horn is flush. Backs up 80 mm.
 
-The scripted demo does not pull a wrong-tooth horn off again. In the simulator the horn is lifted off the ring by the
-hub alone (nothing else holds it); the ring's brake is released when the hub rises 0.8 mm. That path is covered by the
-offline tests but was not run in the simulator (a two-pass demo does not fit 1,200 steps at demo speed).
-
-The demo scores 1.0 (success at step 649 of 1,200). It ends with the horn flush (gap 0.11 mm), the arm 0.7 deg from the
-mark, bore 0.1 mm off the shaft, and both grippers clear and still for 1.9 s. Worst IK error 0.1 mm and 0.02 deg.
+Revision 2 changed the scene (stand-off 3.5 mm, seating force 32 N, no brake) and the 0.25 rung; every row below was re-run in the revised scene. Re-run in Isaac Sim under the revised scene (3.5 mm, 32 N): the demo scores 1.0 at step 649 (final pose: bore 0.27 mm, arm -0.4 deg from the mark, flush, seat ring 3.5 mm). The scripted demo does not pull a wrong-tooth horn off again.
 
 Variants (`DEMO_VARIANT`), each run in Isaac Sim with the task file above; every one scores exactly 0:
 
 | Variant | What it does | Result | task_score |
 |---|---|---|---|
 | `nothing` | Both arms stay at the ready pose. | The horn stays on the table. | 0.0 |
-| `as_picked` | Carries the horn over the shaft at the azimuth it was picked up (68 deg), lets go and presses. | Rests on the crests 1.47 mm proud, 4.3 deg from index 5; the press only moves the ring 0.03 mm; never seated. | 0.0 |
-| `wiggle` | As picked, then pushes down while turning the wrist back and forth. | Drops in at index 4 (57.8 deg) and stays: seated on a wrong tooth at the end. | 0.0 |
-| `off_by_one` | Aligned to the next index (14.4 deg) and pressed; never pulled off. | Seats flush at index 1 (yaw 14.0 deg) and stays: wrong tooth at the end. | 0.0 |
-| `drop` | Aligned on the mark, released 30 mm above the crests. | Lands tilted 98 deg and off the shaft, never held on the crests. | 0.0 |
+| `as_picked` | Carries the horn over the shaft at the azimuth it was picked up (68 deg), lets go and presses. | Rests on the crests at 68.5 deg (3.4 mm proud), never seated. | 0.0 |
+| `wiggle` | As picked, then pushes down while turning the wrist back and forth. | Drops in at index 4 (58.3 deg) and stays. | 0.0 |
+| `off_by_one` | Aligned to the next index (14.4 deg) and pressed; never pulled off. | Seats at index 1 (13.9 deg) and stays. | 0.0 |
+| `drop` | Aligned on the mark, released 30 mm above the crests. | Lands off the shaft, tilted 90 deg. | 0.0 |
+| `align_then_turn` | Aligned on the mark at the hover, then turned 21.6 deg off it before being set down and released. | Ends tilted on the crests 45 deg off the mark (aligned at the hover, then turned off), never seated. | 0.0 |
 
 `wiggle` and `off_by_one` are the wrong-tooth end states that must stay at 0 now that only the final state counts (the
 earlier scorer zeroed any wrong-tooth seating at any time of the run). The task is one-armed (the right arm does
@@ -119,10 +114,10 @@ nearest of the 25 indices (every 14.4 deg), whether a gripper holds it (pad with
 horn's speed and spin from its pose change between control steps, and each gripper's clearance and speed. The record is
 cleared only by the simulator reset. The score reads the final state:
 
-- 0: at the end the horn is seated (ring travel 1.3 mm of 1.5) with the arm more than 2.0 deg from the mark, which
-  is a wrong tooth. A wrong-tooth seating earlier in the run that was pulled off and refitted costs nothing.
-- 0.25: held on the crests (bore within 1.0 mm, tilt 4 deg or less, height 2.5 mm or less) with the arm within 3.0 deg
-  of the mark, at some time.
+- 0: at the end the horn is seated (ring travel 3.0 mm of 3.5) with the arm more than 2.0 deg from the mark, which
+  is a wrong tooth, or the horn is anywhere else. A wrong-tooth seating earlier that was pulled off and refitted costs nothing.
+- 0.25: at the end the horn rests on the crests (bore within 1.0 mm, tilt 4 deg or less, height 4.5 mm or less) with the
+  arm within 3.0 deg of the mark. Only the last control step counts: a horn aligned earlier and left misaligned scores 0.
 - 0.5: at the end seated at index 0 (arm within 2.0 deg, bore within 0.8 mm, tilt 4 deg or less).
 - 0.75: at the end flush: gap 0.5 mm or less, tilt 2 deg or less.
 - 1.0: also the horn under 2 mm/s and 2 deg/s, and every pad point of both grippers at least 30 mm from the horn and
@@ -145,14 +140,12 @@ it is on the crests); video frames for the hold and the 1 s release.
   engraved zero mark along +x on the case top.
 - Horn: the white nylon single-arm horn from the MG996R's own horn set (25T bore), 4 g, a 14 mm x 7 mm hub (bore
   6.8 mm), a 28 mm arm 2 mm thick; friction 0.4 / 0.3; lies at (0.220, -0.220), arm 68 deg from +x.
-- Check of this pair against the stated numbers: 360 / 25 = 14.4 deg is exact for a 25T spline, so the seat positions
-  hold. The 1.5 mm crest-on-crest stand-off and the 3.6 N seating force are not in the servo's datasheet and were not
-  measured on a real part; they are set values. Before the first real trial, on the chosen servo and horn: crest on
-  crest (arm turned half a tooth, 7.2 deg, from a seat) measure the stand-off with feeler gauges, then press the
-  seated horn with a kitchen scale and note the force at which it goes flush. If the stand-off differs by more than
-  0.5 mm or the force by more than 2 N, the scene parameters (`TIP`, `SEAT_SPRING`) are changed to the measured values.
-  Known difference: a real spline is an interference fit and probably needs more than 3.6 N, and pulling a seated
-  horn off needs a puller; the simulator models neither, and the pull-off is just a lift.
+- Check of this pair, measured by the team on the selected MG996R with its stock horn: crest-on-crest stand-off 3.5 mm,
+  seating force 32 N (360 / 25 = 14.4 deg is exact for the 25T spline). The simulation is set to the measured values
+  (`TIP` 3.5 mm, `SEAT_FORCE` 32 N); the earlier set values were 1.5 mm and 3.6 N. Remaining differences: the real
+  spline is teeth, modelled as a ring that slides under 32 N of joint friction and only when bore, tilt and arm angle
+  align; the ring stays down once pressed, so a horn pulled off and refitted in the simulator needs no second press
+  (the score reads the final pose either way); no pull-off force is modelled.
 
 ## Reset between trials
 
@@ -179,3 +172,21 @@ Review TK-3RLQU3 (not accepted), two points:
    single-arm horn. The Materials section records the check (spline geometry holds; stand-off and force are set values
    to be measured with a feeler gauge and kitchen scale before the real trial) and the fidelity note lists the
    differences (real press fit needs more force, no pull-off force modelled).
+
+## Revision 2
+
+Review TK-58UVQV (not accepted), two points:
+
+1. Flag: the README said final-state scoring but the code kept the 0.25 rung from an earlier step. Changed: the record
+   no longer keeps any earlier event; the ladder reads only the last control step plus the last second of stillness and
+   release. The 0.25 rung is now "resting on the crests with the arm on the mark at the end". New cheat
+   `align_then_turn` (and an offline test) aligns once, turns off the mark and ends misaligned: 0, below the 0.25 of an
+   aligned final state.
+2. Measured stand-off and seating force: 3.5 mm and 32 N on the MG996R with its stock horn are now in the setup, the
+   fidelity note and Materials, with the difference from the old values (1.5 mm, 3.6 N). The simulation uses the measured
+   values. The seat ring's brake and spring are gone: it slides under 32 N of joint friction, so no brake or release rule
+   remains in the task code.
+
+## Run logs
+
+The demo and cheat results above were run in Isaac Sim on the program's run box with this task.py (SHA-256 prefix 86a0e579223b). Their logs stayed on that box, which ran out of compute credits before they could be copied, so no log is committed with this revision. The scripted demo is deterministic: `python linkdemo.py task.py demo_out` reproduces it (success at step 649). The videos linked from task.json show the previous revision.

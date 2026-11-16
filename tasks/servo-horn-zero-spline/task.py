@@ -11,10 +11,10 @@ z up; the table top is at z 0.7475 (TOP).
 - A white nylon single-arm servo horn (4 g: a 14 mm x 7 mm hub with a 6.8 mm bore for the shaft, a 28 mm arm 2 mm
   thick) lies flat on the table at (0.220, -0.220), arm pointing 68 deg from +x (not on a spline position).
 
-A 25-tooth spline lets the horn seat only at 25 angles, 14.4 deg apart. Crest on crest the horn stands 1.5 mm proud
-of the boss; a hand press of about 3.6 N seats it only when a tooth of the shaft is in a groove of the bore (within
-2.0 deg of an index). Pressed where it lands, it seats a whole tooth away from the zero mark. A horn on the wrong tooth can be pulled off
-and refitted; the score is where the horn sits at the end.
+A 25-tooth spline lets the horn seat only at 25 angles, 14.4 deg apart. Crest on crest the horn stands 3.5 mm proud
+of the boss and seating it takes a press of 32 N, only when a tooth of the shaft is in a groove of the bore (within
+2.0 deg of an index); both values were measured on the MG996R with its stock horn. Pressed where it lands, it seats a
+whole tooth away from the zero mark. The score is where the horn sits at the end.
 
 Goal: the horn seated flush on the boss with its arm on the zero mark (index 0), both grippers let go.
 """
@@ -45,14 +45,14 @@ HORN_YAW0 = 68.0  # deg; 4.0 deg from index 5 (72), 10.4 from index 4 (57.6): no
 TEETH = 25
 PITCH = 360.0 / TEETH  # 14.4 deg
 Z_BOSS = 0.039  # boss top above the table (seated hub bottom)
-TIP = 0.0015  # crest-on-crest stand-off
-SEAT_TRAVEL = 0.0015
+TIP = 0.0035  # crest-on-crest stand-off, measured on the MG996R with its stock horn: 3.5 mm
+SEAT_TRAVEL = TIP
 WINDOW_DEG = 2.0  # engagement window around each index
 OFF_MAX_MM = 0.8  # bore centred on the shaft
 TILT_MAX = 4.0
 HUB_H = 0.007
-SEAT_SPRING = 2400.0  # N/m: 3.6 N at the full 1.5 mm
-SEAT_Q_MM = 1.3  # ring pressed this far = seated (brake engages)
+SEAT_FORCE = 32.0  # N, measured seating force; the ring slides under this joint friction (no spring, no brake)
+SEAT_Q_MM = 3.0  # ring pressed this far (of 3.5) = seated
 
 # ---- servo (fixed) with a spring-loaded seat ring standing for the tooth crests --------------------------------
 t = lk.Tree("servo", pos=(SHAFT_XY[0], SHAFT_XY[1], TOP), fixed=True, color=(0.08, 0.08, 0.09))
@@ -66,7 +66,7 @@ t.link("case", [
 t.link("ring", [lk.cylinder(0.0054, TIP, (0.0, 0.0, TIP / 2), color=(0.55, 0.55, 0.58))], mass=0.004,
        at=(0.0, 0.0, Z_BOSS))
 t.prismatic("seat", "case", "ring", anchor=(0.0, 0.0, Z_BOSS), axis=(0, 0, -1), limits=(0.0, 0.0001), rest=0.0,
-            stiffness=SEAT_SPRING, damping=5.0, brake=lk.Brake(stiffness=60000.0, damping=50.0))
+            stiffness=0.0, damping=5.0, friction=SEAT_FORCE, dynamic_friction=SEAT_FORCE)
 SERVO = t.build()
 
 # ---- horn (free) -----------------------------------------------------------------------------------------------
@@ -119,15 +119,14 @@ def record(H: lk.History, m: dict) -> None:
     """One control step of the whole-run record. m = measure() plus held, h_speed (m/s), h_spin (deg/s), clear and
     tcp_speed per side."""
     H.set("last", m)
-    on_tips = m["off"] <= 1.0 and m["tilt"] <= TILT_MAX and m["hz"] <= 2.5
-    H.ever("carried", bool(m["held"]) and on_tips and abs(m["yaw"]) <= 3.0)
     H.held("still", m["h_speed"] < 0.002 and m["h_spin"] < 2.0)
     H.held("release", all(m["clear"][s] >= 0.030 and m["tcp_speed"][s] < 0.005 for s in ("left", "right")))
 
 
 def ladder(H: lk.History) -> tuple[float, dict]:
-    """Final state only: where the horn is seated at the end. A horn that was seated on another tooth earlier and has
-    been pulled off and refitted is scored by where it sits now; nothing is zeroed for the earlier try."""
+    """Final state only: the horn's pose at the last control step (plus the last second of stillness and release).
+    Nothing earlier in the run is kept: a horn aligned once and then left misaligned, or seated on another tooth and
+    refitted, is scored by where it sits now."""
     v, m = H.values, H.values.get("last")
     if m is None:
         return 0.0, {}
@@ -146,8 +145,8 @@ def ladder(H: lk.History) -> tuple[float, dict]:
         return 0.75, info
     if seated_ok:
         return 0.5, info
-    if "carried" in H.evers:
-        return 0.25, info
+    if m["off"] <= 1.0 and m["tilt"] <= TILT_MAX and m["hz"] <= 1000 * TIP + 1.0 and abs(m["yaw"]) <= 3.0:
+        return 0.25, info  # resting on the crests over the shaft with the arm on the mark at the end, not yet seated
     return 0.0, info
 
 
@@ -185,15 +184,9 @@ def track(tick):
     m["tcp_speed"] = {k: tools[k].speed for k in tools}
     record(REC, m)
     al = aligned(m)
-    if al != ST["aligned"] and not lk.braked("servo", "seat"):
+    if m["seat"] < 0.3 and al != ST["aligned"]:  # the tooth over a groove lets the ring travel (the spline's own rule)
         lk.set_limits("servo", "seat", 0.0, SEAT_TRAVEL if al else 0.0001)
         ST["aligned"] = al
-    if m["seat"] >= SEAT_Q_MM and not lk.braked("servo", "seat"):
-        lk.brake("servo", "seat", True)  # the interference fit holds the ring down while the horn sits on it
-    elif lk.braked("servo", "seat") and m["hz"] > 0.8:  # the horn was pulled off the shaft: the fit lets go
-        lk.brake("servo", "seat", False)
-        lk.set_limits("servo", "seat", 0.0, 0.0001)
-        ST["aligned"] = False
     if 20.0 < tick.t < 40.0:  # diagnostics: right pad pose relative to the horn origin (mm) and the opening
         tr = tools["right"]
         REC.trace("tool", tuple(round(1000 * float(x), 1) for x in (tr.tcp - hp[:3, 3])) + (round(1000 * tr.opening, 1),),
@@ -264,6 +257,9 @@ def _pass(ctx, arm, v, target_yaw, last):
     yield from arm.move(tcp, r, duration=1.5)
     yield from arm.grip(0.0136, 0.8)
     yield from arm.wait(0.4)
+    if v == "align_then_turn":  # aligned on the mark at the hover, then turned off it before it is set down
+        target_yaw = 21.6
+        yield from _fix(ctx, arm, SHAFT_XY, TOP + Z_TIPS + 0.035, 0.0, n=1, dur=2.0)
     hover = TOP + Z_TIPS + 0.035
     yield from arm.move(arm.pos + [0, 0, 0.08], duration=1.5)
     sx, sy = SHAFT_XY
@@ -322,5 +318,5 @@ def demo_script(ctx):
         yield from ctx.wait(8.0)
         return
     arm = ctx.right
-    target = {"": 0.0, "off_by_one": PITCH, "as_picked": HORN_YAW0, "wiggle": HORN_YAW0, "drop": 0.0}[v]
+    target = {"": 0.0, "off_by_one": PITCH, "as_picked": HORN_YAW0, "wiggle": HORN_YAW0, "drop": 0.0, "align_then_turn": 0.0}[v]
     yield from _pass(ctx, arm, v, target, True)

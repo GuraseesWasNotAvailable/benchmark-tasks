@@ -22,7 +22,7 @@ DT = 0.05
 
 def sample(**kw):
     """The finished state: horn seated at index 0, hands clear and still."""
-    m = {"off": 0.2, "hz": 0.1, "tilt": 0.5, "yaw": 0.3, "d": 0.3, "k": 0, "seat": 1.5, "held": False,
+    m = {"off": 0.2, "hz": 0.1, "tilt": 0.5, "yaw": 0.3, "d": 0.3, "k": 0, "seat": 3.5, "held": False,
          "h_speed": 0.0, "h_spin": 0.0, "clear": {"left": 0.08, "right": 0.06}, "tcp_speed": {"left": 0.0, "right": 0.0}}
     m.update(kw)
     m["d"] = kw.get("d", (m["yaw"] + T.PITCH / 2) % T.PITCH - T.PITCH / 2)
@@ -39,11 +39,11 @@ def run(samples):
 
 
 def carried(**kw):
-    return sample(seat=0.0, hz=1.5, held=True, **kw)
+    return sample(seat=0.0, hz=3.5, held=True, **kw)
 
 
 def demo_trace(n_end=40):
-    return [carried(yaw=0.2)] * 10 + [sample(seat=0.7, hz=0.8)] * 3 + [sample()] * n_end
+    return [carried(yaw=0.2)] * 10 + [sample(seat=1.5, hz=2.0)] * 3 + [sample()] * n_end
 
 
 def test_demo_shape_scores_one():
@@ -62,9 +62,9 @@ def test_wrong_tooth_at_the_end_scores_zero():
 
 
 def test_wrong_tooth_then_pulled_off_and_refitted_scores_one():
-    tr = ([sample(seat=0.0, hz=1.5, held=True, yaw=14.4)] * 3 + [sample(yaw=14.4)] * 5
+    tr = ([sample(seat=0.0, hz=3.5, held=True, yaw=14.4)] * 3 + [sample(yaw=14.4)] * 5
           + [sample(seat=0.0, hz=30.0, held=True, yaw=14.4)] * 5 + [carried(yaw=0.2)] * 10
-          + [sample(seat=0.7, hz=0.8)] * 3 + [sample()] * 40)
+          + [sample(seat=1.5, hz=2.0)] * 3 + [sample()] * 40)
     sc, info = T.ladder(run(tr))
     assert sc == 1.0 and not info["wrong_index_now"]
 
@@ -107,16 +107,26 @@ def test_press_where_it_lands_unseated_scores_zero():
     assert T.ladder(H)[0] == 0.0
 
 
-def test_carried_rung_needs_a_hold():
-    dropped = run([sample(seat=0.0, hz=1.5, held=False, yaw=0.5)] * 30)
-    assert T.ladder(dropped)[0] == 0.0
-    held = run([carried(yaw=0.5)] * 3)
-    assert T.ladder(held)[0] == 0.25
+def test_aligned_on_the_crests_at_the_end_is_a_quarter():
+    assert T.ladder(run([carried(yaw=0.5)] * 3))[0] == 0.25
+    assert T.ladder(run([sample(seat=0.0, hz=3.5, held=False, yaw=0.5)] * 30))[0] == 0.25
 
 
-def test_carried_rung_needs_the_mark_within_3_deg():
+def test_crest_rung_needs_the_mark_within_3_deg():
     assert T.ladder(run([carried(yaw=2.9)] * 3))[0] == 0.25
     assert T.ladder(run([carried(yaw=3.1)] * 3))[0] == 0.0
+
+
+def test_aligned_once_then_misaligned_at_the_end_scores_below_aligned_final_state():
+    tr = [carried(yaw=0.2)] * 10 + [carried(yaw=21.6)] * 10 + [sample(seat=0.0, hz=3.5, held=False, yaw=21.6)] * 30
+    aligned_end = [carried(yaw=0.2)] * 10 + [sample(seat=0.0, hz=3.5, held=False, yaw=0.2)] * 30
+    assert T.ladder(run(tr))[0] == 0.0
+    assert T.ladder(run(aligned_end))[0] == 0.25 > T.ladder(run(tr))[0]
+
+
+def test_aligned_then_dropped_off_the_shaft_is_zero():
+    tr = [carried(yaw=0.2)] * 10 + [sample(seat=0.0, hz=-40.0, off=150.0, yaw=0.2, held=False)] * 30
+    assert T.ladder(run(tr))[0] == 0.0
 
 
 def test_seated_but_still_held_is_half_or_three_quarters():
@@ -128,7 +138,7 @@ def test_seated_but_still_held_is_half_or_three_quarters():
 
 def test_end_limits():
     for kw, want in (({"hz": 0.5}, 1.0), ({"hz": 0.6}, 0.5), ({"tilt": 2.0}, 1.0), ({"tilt": 2.1}, 0.5),
-                     ({"off": 0.8}, 1.0), ({"off": 0.9}, 0.25), ({"seat": 1.3}, 1.0), ({"seat": 1.2}, 0.25)):
+                     ({"off": 0.8}, 1.0), ({"off": 0.9}, 0.25), ({"seat": 3.0}, 1.0), ({"seat": 2.9}, 0.25)):
         tr = [carried(yaw=0.2)] * 5 + [sample(**kw)] * 40
         assert T.ladder(run(tr))[0] == want, kw
 
@@ -158,7 +168,7 @@ def test_horn_must_be_still_for_the_last_second():
 
 def test_unseating_after_the_seat_loses_the_end_rung():
     tr = [carried(yaw=0.2)] * 5 + [sample()] * 5 + [sample(seat=0.0, hz=3.0, yaw=40.0, k=3)] * 40
-    assert T.ladder(run(tr))[0] == 0.25  # seated state is gone; only the carried rung remains
+    assert T.ladder(run(tr))[0] == 0.0  # seated state is gone and the arm ended off the mark: nothing is kept
 
 
 def test_record_is_clean_after_reset():
@@ -198,4 +208,4 @@ def test_spline_geometry():
     # the horn's initial azimuth sits off every index by more than the window
     d = (T.HORN_YAW0 + T.PITCH / 2) % T.PITCH - T.PITCH / 2
     assert abs(d) > T.WINDOW_DEG
-    assert T.SEAT_SPRING * T.SEAT_TRAVEL == pytest.approx(3.6)
+    assert T.TIP == pytest.approx(0.0035) and T.SEAT_FORCE == 32.0  # measured on the MG996R and its stock horn

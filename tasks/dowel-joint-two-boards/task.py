@@ -7,15 +7,16 @@ z up; the table top is at z 0.7475. The bench is a waxed laminate top (low frict
 
 - A pale birch board (18 x 80 x 150 mm, 123 g) lies at (0.36, -0.33), its long axis along y. Three 8 mm beech dowels
   are glued 20 mm out of its seam end (the +y end) at x -25, 0 and +25 mm, 9 mm above the bench.
-- A dark walnut board (same size, 140 g) lies at (0.36, +0.33). Its seam end (the -y end) has three 9 mm square sockets
-  22 mm deep at the same pitch and height (0.5 mm of clearance a side).
+- A dark walnut board (same size, 140 g) lies at (0.36, +0.33). Its seam end (the -y end) has three round dowel sockets
+  22 mm deep at the same pitch and height. Each socket is a ring of 16 thin boxes around an 8.4 mm bore (0.2 mm of
+  clearance a side around the 8 mm dowel; a real brad-point 8.0 mm hole in beech or birch measures about 8.1 mm).
 - Neither board is clamped, jigged or stopped. The seam is at y 0: the left arm stands at y +0.3, the right at y -0.3.
   Each board starts beside its own arm, 0.51 m from the other board's seam end; the pale board lies 0.73 m from the
   left arm's base and the dark board 0.73 m from the right arm's. A one-armed carry stops short: with a board in hand
   the arm cannot get its gripper past y -0.075 (left) or +0.075 (right) at x 0.36, and the seat needs y -0.135.
 
 Goal: both boards lying flat on the bench with their seam ends touching, the three dowels in the three sockets, the
-edges flush; both grippers let go.
+edges flush; both grippers let go. Scored on the final state only.
 """
 
 from __future__ import annotations
@@ -40,7 +41,9 @@ MM = 0.001
 
 T_B, W_B, L_B = 0.018, 0.080, 0.150  # board thickness, width, length (m)
 DOWEL_R, DOWEL_LEN, DOWEL_X = 0.004, 0.020, (-0.025, 0.0, 0.025)
-SOCKET, SOCKET_DEEP = 0.009, 0.022
+BORE_D, SOCKET_DEEP = 0.0084, 0.022  # round socket bore (dowel 8.0 mm), depth
+N_STAVES, STAVE_T = 16, 0.003  # the bore is a 16-sided ring of thin boxes, each 3 mm thick radially
+CAVITY = 0.015  # square cut-out in the board end that holds one ring
 BX = 0.36
 A_Y0, B_Y0 = -0.33, 0.33  # board centres at the start
 
@@ -59,19 +62,35 @@ def _pale():
     return t.build()
 
 
+def _ring(x, y_mid, z_mid):
+    """One round socket: N_STAVES thin boxes whose inner faces are tangent to the BORE_D circle (axis along y). The
+    polygon is circumscribed, so the bore is 8.4 mm across the flats and 8.57 mm across the corners."""
+    r_in = BORE_D / 2
+    w = 2.0 * (r_in + STAVE_T) * math.tan(math.pi / N_STAVES)  # wide enough that neighbours overlap at the corners
+    out = []
+    for k in range(N_STAVES):
+        th = 2.0 * math.pi * k / N_STAVES
+        d = r_in + STAVE_T / 2
+        out.append(lk.box((w, SOCKET_DEEP, STAVE_T),
+                          (x + d * math.cos(th), y_mid, z_mid + d * math.sin(th)),
+                          rpy_deg=(0.0, 90.0 - math.degrees(th), 0.0), contact_offset=0.001))
+    return out
+
+
 def _dark():
     t = lk.Tree("dark", pos=(BX, B_Y0, TOP), color=DARK)
-    sh = SOCKET / 2
+    sh = CAVITY / 2
     y_front, y_back = -L_B / 2, -L_B / 2 + SOCKET_DEEP
     shapes = [lk.box((W_B, L_B - SOCKET_DEEP, T_B), (0.0, (y_back + L_B / 2) / 2, T_B / 2), contact_offset=0.001)]
     edges = [-W_B / 2] + [v for x in DOWEL_X for v in (x - sh, x + sh)] + [W_B / 2]
     zl, zh = T_B / 2 - sh, T_B / 2 + sh
     ymid = (y_front + y_back) / 2
-    for a, b in zip(edges[0::2], edges[1::2]):  # solid columns between the sockets
+    for a, b in zip(edges[0::2], edges[1::2]):  # solid columns between the cut-outs
         shapes.append(lk.box((b - a, SOCKET_DEEP, T_B), ((a + b) / 2, ymid, T_B / 2), contact_offset=0.001))
-    for x in DOWEL_X:  # floor and roof of each socket
-        shapes.append(lk.box((SOCKET, SOCKET_DEEP, zl), (x, ymid, zl / 2), contact_offset=0.001))
-        shapes.append(lk.box((SOCKET, SOCKET_DEEP, T_B - zh), (x, ymid, (zh + T_B) / 2), contact_offset=0.001))
+    for x in DOWEL_X:  # floor and roof of each cut-out, then the round socket ring inside it
+        shapes.append(lk.box((CAVITY, SOCKET_DEEP, zl), (x, ymid, zl / 2), contact_offset=0.001))
+        shapes.append(lk.box((CAVITY, SOCKET_DEEP, T_B - zh), (x, ymid, (zh + T_B) / 2), contact_offset=0.001))
+        shapes.extend(_ring(x, ymid, T_B / 2))
     t.link("board", shapes, mass=0.140, friction=(0.25, 0.25), contact_offset=0.001)
     return t.build()
 
@@ -81,6 +100,9 @@ OBJECTS = [PALE_B, DARK_B]
 
 # -- thresholds ------------------------------------------------------------------------------------------------------
 TIPS_IN_M = 0.019  # seam gap under the dowel length: the tips are in the sockets
+GAP_MIN_M = -0.002  # lower bound on every seam gap: boards that overlap (a negative gap) cannot score
+DZ_M = 0.002  # bound on the height difference of the two boards: a board stacked on the other cannot score
+TILT_DEG = 3.0  # both boards lying flat
 HALF_M = 0.010
 SEATED_M = 0.0005
 FLUSH_M = 0.001
@@ -110,7 +132,7 @@ def measure(PA, PB, tools=None, states=None) -> dict:
         gaps.append(float(p[1] - L_B / 2))
     rel = iA @ PB
     yaw = math.degrees(math.atan2(rel[1, 0], rel[0, 0]))
-    m = {"gap_l": gaps[0], "gap_r": gaps[1], "dx": float(rel[0, 3]), "yaw": yaw,
+    m = {"gap_l": gaps[0], "gap_r": gaps[1], "dx": float(rel[0, 3]), "dz": float(rel[2, 3]), "yaw": yaw,
          "tilt_a": math.degrees(math.acos(max(-1.0, min(1.0, float(PA[2, 2]))))),
          "tilt_b": math.degrees(math.acos(max(-1.0, min(1.0, float(PB[2, 2]))))),
          "pos_a": PA[:3, 3].copy(), "pos_b": PB[:3, 3].copy()}
@@ -124,7 +146,8 @@ def measure(PA, PB, tools=None, states=None) -> dict:
 
 
 class Record:
-    """Whole-run record: a linkkit History fed every control step, cleared only by the simulator reset."""
+    """A linkkit History fed every control step and cleared only by the simulator reset. The score reads the last
+    measurement (the final state) and the length of the current release run; no earlier state earns credit."""
 
     def __init__(self):
         self.H = lk.History()
@@ -152,18 +175,26 @@ class Record:
                          round(m["yaw"], 2)), every=0.5)
         H.peak("travel_a", ta)
         H.peak("travel_b", tb)
-        H.ever("tips_in", gmax <= TIPS_IN_M and abs(m["dx"]) <= FLUSH_M and abs(m["yaw"]) <= YAW_TIPS_DEG)
-        H.ever("half", gmax <= HALF_M and abs(m["yaw"]) <= YAW_TIPS_DEG)
         H.held("released", bool(m["clear"]) and min(m["clear"].values()) >= CLEAR_M
                and max(m["tcp_speed"].values()) < STILL_MS and m["speed"] < BOARD_STILL)
 
 
+def _in_line(m, gap_max) -> bool:
+    """Final-state check shared by every partial rung: both seam gaps between GAP_MIN_M and gap_max (so overlapping
+    boards fail), the boards at the same height (so a stacked board fails), square, flat and flush."""
+    return (GAP_MIN_M <= min(m["gap_l"], m["gap_r"]) and max(m["gap_l"], m["gap_r"]) <= gap_max
+            and abs(m["dz"]) <= DZ_M and abs(m["dx"]) <= FLUSH_M and abs(m["yaw"]) <= YAW_TIPS_DEG
+            and m["tilt_a"] <= TILT_DEG and m["tilt_b"] <= TILT_DEG)
+
+
 def seated(m) -> bool:
-    return (-0.002 <= m["gap_l"] <= SEATED_M and -0.002 <= m["gap_r"] <= SEATED_M
-            and abs(m["dx"]) <= FLUSH_M and m["tilt_a"] <= 3.0 and m["tilt_b"] <= 3.0)
+    return (GAP_MIN_M <= m["gap_l"] <= SEATED_M and GAP_MIN_M <= m["gap_r"] <= SEATED_M
+            and abs(m["dz"]) <= DZ_M and abs(m["dx"]) <= FLUSH_M and m["tilt_a"] <= TILT_DEG
+            and m["tilt_b"] <= TILT_DEG)
 
 
 def ladder(rec: Record) -> tuple[float, str]:
+    """Rung from the final state only. No damage condition is scored: nothing in the scene can be broken."""
     H, m = rec.H, rec.last
     if m is None:
         return 0.0, "no steps yet"
@@ -171,11 +202,11 @@ def ladder(rec: Record) -> tuple[float, str]:
         if H.runs.get("released", 0.0) >= RELEASE_S - EPS:
             return 1.0, "seated, edges flush, both grippers 30 mm clear and still for 1 s"
         return 0.75, "seated at the end; the grippers are not yet 30 mm clear and still for 1 s"
-    if "half" in H.evers and "tips_in" in H.evers and max(m["gap_l"], m["gap_r"]) <= HALF_M:
-        return 0.5, "dowels more than half in, not seated at the end"
-    if "tips_in" in H.evers:
-        return 0.25, "the dowel tips entered the sockets square (within 1 mm sideways and 2 deg of yaw), not yet seated"
-    return 0.0, "the dowel tips never entered the sockets square"
+    if _in_line(m, HALF_M):
+        return 0.5, "at the end the dowels are more than half in, square and level, not seated"
+    if _in_line(m, TIPS_IN_M):
+        return 0.25, "at the end the dowel tips are in the sockets square and level (within 1 mm sideways, 2 deg of yaw), not half in"
+    return 0.0, "at the end the dowel tips are not in the sockets square and level"
 
 
 REC = Record()
@@ -216,6 +247,7 @@ GRIP_OPEN, GRIP_CLOSED = 0.094, 0.0785
 TCP_Z = TOP + 0.014
 PRE = 0.100  # each board's centre this far from the seam before the insertion (seam faces 50 mm apart)
 SEAT = L_B / 2  # centre distance from the seam when seated
+TIP_OFF = SEAT + 0.012  # centre distance when the seam gap is 24 mm: the dowel tips are 4 mm short of the sockets
 PUSH = 0.0015
 GRIP_OFF = 0.045  # the grip is this far from the board's centre toward its outer end
 
@@ -291,7 +323,7 @@ class Hand:
 
         yield from self.arm.follow(at, secs)
 
-    def servo(self, Dfn, tag, tries=4, tol_mm=0.15, tol_deg=0.1):
+    def servo(self, Dfn, tag, tries=6, tol_mm=0.1, tol_deg=0.08):
         for k in range(tries):
             yield from self.arm.wait(0.3)
             e, a = self.step_err(Dfn(1.0), 0.8)
@@ -336,7 +368,12 @@ def demo_script(ctx):
         LOG["right_ready"] = True
         while not LOG.get("left_ready"):
             yield from hr.arm.wait(0.1)
-        yield from hr.follow(lambda s: DA(PRE - (PRE - SEAT) * s), 10.0, gain=0.1)
+        yield from hr.follow(lambda s: DA(PRE - (PRE - TIP_OFF) * s), 7.0, gain=0.1)
+        yield from hr.servo(lambda s: DA(TIP_OFF), "A tip")  # null the offset and yaw once more, 4 mm before the tips
+        LOG["right_tip"] = True
+        while not LOG.get("left_tip"):
+            yield from hr.arm.wait(0.1)
+        yield from hr.follow(lambda s: DA(TIP_OFF - (TIP_OFF - SEAT) * s), 9.0, gain=0.1)
         yield from hr.follow(lambda s: DA(SEAT - PUSH * s), 1.0)
         yield from hr.arm.wait(1.5)
         LOG["right_done"] = True
@@ -351,7 +388,12 @@ def demo_script(ctx):
         LOG["left_ready"] = True
         while not LOG.get("right_ready"):
             yield from hl.arm.wait(0.1)
-        yield from hl.follow(lambda s: DB(PRE - (PRE - SEAT) * s), 10.0, gain=0.1)
+        yield from hl.follow(lambda s: DB(PRE - (PRE - TIP_OFF) * s), 7.0, gain=0.1)
+        yield from hl.servo(lambda s: DB(TIP_OFF), "B tip")
+        LOG["left_tip"] = True
+        while not LOG.get("right_tip"):
+            yield from hl.arm.wait(0.1)
+        yield from hl.follow(lambda s: DB(TIP_OFF - (TIP_OFF - SEAT) * s), 9.0, gain=0.1)
         yield from hl.follow(lambda s: DB(SEAT - PUSH * s), 1.0)
         while not LOG.get("right_done"):
             yield from hl.arm.wait(0.1)

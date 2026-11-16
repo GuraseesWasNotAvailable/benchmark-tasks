@@ -3,7 +3,8 @@
 """Scorer edge cases for security-tag-detacher, pure Python (no simulator). Run from the task folder: pytest -q tests
 
 The scorer is a whole-run linkkit History fed every control step through update(), plus ladder(). Tests feed it
-synthetic samples; the seat_error tests build poses by hand.
+synthetic samples; the seat_error tests build poses by hand. The latch itself (a spring-loaded plunger and bolt in the
+scene) is physics and is only checked here as geometry.
 """
 
 import math
@@ -22,23 +23,25 @@ DT = 0.05  # 20 Hz control
 
 def sample(**kw):
     """A sample of the seated state: pocket on the dome, pin still in, one hand on the detacher, one far away."""
-    m = {"dx": 0.0, "dz": 0.0, "gap": 0.0003, "tilt": 0.0, "pin": 0.0, "clear_left": 0.0, "clear_right": 0.08,
-         "spd_left": 0.0, "spd_right": 0.0}
+    m = {"dx": 0.0, "dz": 0.0, "gap": 0.0003, "tilt": 0.0, "pin": 0.0, "plunger": 0.0014, "clear_left": 0.0,
+         "clear_right": 0.08, "spd_left": 0.0, "spd_right": 0.0}
     m.update(kw)
     return m
+
+
+AWAY = {"gap": 0.1, "plunger": 0.0}  # the detacher 100 mm from the tag: not seated, the plunger sprung out
 
 
 class Run:
     def __init__(self):
         self.h = lk.History()
         self.t = 0.0
-        self.releases = 0
 
     def step(self, n=1, **kw):
         for _ in range(n):
             self.t += DT
             self.h._tick(self.t)
-            self.releases += bool(T.update(self.h, sample(**kw)))
+            T.update(self.h, sample(**kw))
         return self
 
     def rung(self):
@@ -47,26 +50,27 @@ class Run:
 
 def demo_run():
     r = Run()
-    r.step(10, gap=0.1)  # approach
-    r.step(10)  # seated for 0.5 s, the clutch releases at 0.3 s
-    r.step(10, pin=0.010)  # pulling
+    r.step(10, **AWAY)  # approach
+    r.step(10)  # seated for 0.5 s, the plunger pressed
+    r.step(10, pin=0.010)  # pulling with the detacher in place
     r.step(5, pin=0.0175)  # pin out, hands still on it
     r.step(30, pin=0.017, clear_left=0.06, clear_right=0.08)  # let go, backed off, still
     return r
 
 
 def test_demo_shaped_trace_scores_1():
-    r = demo_run()
-    assert r.rung() == 1.0
-    assert r.releases == 1  # the clutch releases once, 0.3 s into the seat
+    assert demo_run().rung() == 1.0
 
 
 def test_nothing_scores_0():
-    r = Run().step(40, gap=0.1)
-    assert r.rung() == 0.0 and r.releases == 0
+    assert Run().step(40, **AWAY).rung() == 0.0
 
 
-@pytest.mark.parametrize("key,ok,bad", [("dx", 0.003, 0.0031), ("dz", 0.002, 0.0021), ("gap", 0.0015, 0.0016),
+def test_seating_alone_scores_0():
+    assert Run().step(40).rung() == 0.0  # seated, nothing pulled
+
+
+@pytest.mark.parametrize("key,ok,bad", [("dx", 0.003, 0.0031), ("dz", 0.002, 0.0021), ("gap", 0.0005, 0.0006),
                                          ("tilt", 6.0, 6.1)])
 def test_seat_limits(key, ok, bad):
     assert T.is_seated(sample(**{key: ok}))
@@ -84,38 +88,54 @@ def test_gap_lower_limit():
     assert not T.is_seated(sample(gap=-0.0006))
 
 
-def test_seat_must_hold_0_3_s():
-    assert Run().step(5).rung() == 0.0  # 0.25 s
-    r = Run().step(6)  # 0.30 s
-    assert r.releases == 1 and r.rung() == 0.25
-    r = Run().step(4).step(1, dx=0.01).step(4)  # a break restarts the timer
-    assert r.releases == 0 and r.rung() == 0.0
+# -- the late pull: the detacher has left, the latch has closed again, nothing the pin does afterwards is credited -----
 
 
-def test_forced_pin_gates_to_zero_even_after_a_good_run():
-    r = Run().step(3, pin=0.0029, gap=0.1)  # 2.9 mm of stretch is no gate
-    assert r.rung() == 0.0 and "forced" not in r.h.evers
-    r = Run().step(1, pin=0.0030, gap=0.1)  # 3.0 mm with the clutch locked is
-    assert "forced" in r.h.evers
-    r.step(20).step(10, pin=0.017).step(30, pin=0.017, clear_left=0.06)
-    assert r.rung() == 0.0  # seating and a full pull afterwards cannot undo it
+def test_late_pull_scores_0():
+    r = Run().step(10).step(10, **AWAY)  # seated, then taken away without a pull
+    r.step(10, pin=0.017, **AWAY).step(30, pin=0.017, clear_left=0.06, **AWAY)  # pin out afterwards, hands clear
+    assert r.rung() == 0.0
+    assert r.h.peaks.get("pin_seated", 0.0) == 0.0
 
 
-def test_pull_during_the_seat_hold_is_forced():
-    r = Run().step(3, pin=0.004)  # 0.15 s seated, the clutch still locked
-    assert "forced" in r.h.evers and r.rung() == 0.0
+def test_late_pull_without_ever_seating_scores_0():
+    assert Run().step(10, **AWAY).step(40, pin=0.02, clear_left=0.06, **AWAY).rung() == 0.0
 
 
-def test_pin_travel_after_release_is_free():
-    r = Run().step(6).step(5, pin=0.020)
-    assert "forced" not in r.h.evers and r.rung() == 0.75
+def test_late_pull_of_any_depth_scores_0():
+    for pin in (0.0049, 0.0050, 0.010, 0.030):
+        assert Run().step(10).step(10, **AWAY).step(10, pin=pin, **AWAY).rung() == 0.0
+
+
+def test_pull_finished_after_the_detacher_leaves_gets_only_the_seated_part():
+    r = Run().step(10).step(5, pin=0.010)  # 10 mm pulled with the detacher seated
+    r.step(10, pin=0.010, **AWAY).step(30, pin=0.017, clear_left=0.06, **AWAY)  # the rest after it left
+    assert r.rung() == 0.25  # credit for the 10 mm only, never success
+    assert T.ladder(r.h)[0] < 1.0
+
+
+def test_pull_made_in_place_keeps_its_credit_after_the_detacher_leaves():
+    r = Run().step(10).step(5, pin=0.0175)  # out 17.5 mm with the detacher seated
+    r.step(30, pin=0.017, clear_left=0.06, **AWAY)
+    assert r.rung() == 1.0  # leaving afterwards is the demo's own ending
+
+
+def test_no_permanent_record_of_a_release():
+    r = Run().step(10).step(10, **AWAY)  # seated for a while, then away: no clutch state survives in the record
+    assert set(r.h.evers) == set()
+    assert r.rung() == 0.0
+
+
+def test_pin_travel_with_the_detacher_away_is_not_a_violation():
+    r = Run().step(3, pin=0.004, **AWAY).step(10).step(5, pin=0.016).step(30, pin=0.016, clear_left=0.06)
+    assert r.rung() == 1.0  # a harmless earlier tug does not zero the run
 
 
 def test_ladder_rungs():
-    assert Run().step(6).rung() == 0.25
-    assert Run().step(6).step(2, pin=0.0049).step(2, pin=0.0).rung() == 0.25  # 4.9 mm is not 5
-    assert Run().step(6).step(2, pin=0.0050).step(2, pin=0.0).rung() == 0.5  # peak 5 mm, then pushed back in
-    assert Run().step(6).step(2, pin=0.0149).rung() == 0.5
+    assert Run().step(6).step(2, pin=0.0049).rung() == 0.0  # 4.9 mm is not 5
+    assert Run().step(6).step(2, pin=0.0050).step(2, pin=0.0).rung() == 0.25  # peak 5 mm, then pushed back in
+    assert Run().step(6).step(2, pin=0.0149).rung() == 0.25
+    assert Run().step(6).step(2, pin=0.0150).step(2, pin=0.0).rung() == 0.5  # 15 mm seated, pushed back in
     assert Run().step(6).step(2, pin=0.0150).rung() == 0.75
 
 
@@ -148,9 +168,13 @@ def test_success_only_on_top_rung():
 
 def test_history_clears_on_reset():
     r = Run().step(1, pin=0.01)
-    assert "forced" in r.h.evers
+    assert r.h.peaks.get("pin_seated", 0.0) == 0.01
     r.h.reset()
-    assert T.ladder(r.h)[0] == 0.0 and "forced" not in r.h.evers
+    assert T.ladder(r.h)[0] == 0.0 and not r.h.peaks
+
+
+def test_variants_listed():
+    assert {"nothing", "no_detacher", "offset_detacher", "drag_cuff", "late_pull"} <= set(T.VARIANTS)
 
 
 # -- geometry: seat_error from hand-built poses ---------------------------------------------------------------------
@@ -203,5 +227,28 @@ def test_scene_constants_match_the_setup_text():
     assert (T.PUCK_W, T.PUCK_LEN, T.PUCK_H) == (0.055, 0.085, 0.020)
     assert T.POCKET_W - 2 * T.DOME_R == pytest.approx(0.004)  # 2 mm clearance each side of the 14 mm dome
     assert T.POCKET_H - 2 * T.DOME_R == pytest.approx(0.002)
-    assert T.POCKET_D - T.DOME_PROUD == pytest.approx(0.001)  # 1 mm of air behind the dome when the rim touches
+    assert T.DOME_PROUD - T.POCKET_D == pytest.approx(0.0015)  # the floor presses the dome in 1.5 mm at the rim
+    assert T.PLUNGER_TRAVEL == pytest.approx(0.0015)
     assert T.PIN_STROKE > T.OUT_FULL
+
+
+def test_latch_geometry_holds_and_releases():
+    """The bolt sits in the shaft's groove (engaged) and clears the shaft once the dome is pressed in."""
+    assert -T.SHAFT_R < T.BOLT_TIP_Y < -T.CORE_R  # tip 0.5 mm inside the shaft outline, clear of the core
+    assert T.GROOVE_Z1 - T.GROOVE_Z0 > T.BOLT_H  # the bolt fits the groove
+    pressed = 0.0006  # 0.6 mm of dome travel draws the tip out past the shaft surface
+    assert T.BOLT_TIP_Y - pressed < -T.SHAFT_R
+    # at the loosest seat the rim may be 0.5 mm off the face; the press is still more than the 0.6 mm needed
+    assert T.PLUNGER_TRAVEL - T.SEAT_GAP[1] > pressed
+    assert 0.006 < T.SHAFT_Z0  # the plunger stem (top at 6 mm) runs under the pin's lower end
+    assert T.SHAFT_Z0 + T.OUT_FULL > T.BODY[2]  # a pin out 15 mm has its tip clear of the housing top
+
+
+def test_a_pulled_pin_stands_clear_of_the_bolt_and_a_part_pulled_pin_does_not():
+    bolt = (T.GROOVE_Z0 + 0.0002, T.GROOVE_Z1 - 0.0002)
+
+    def shaft_at_bolt_height(pull):  # the lower shaft piece, shifted up by the pull, overlaps the bolt's height
+        return T.SHAFT_Z0 + pull < bolt[1] and T.GROOVE_Z0 + pull > bolt[0]
+
+    assert shaft_at_bolt_height(0.005)  # a 5 mm pull leaves shaft at the bolt: the bolt rides on it, no re-lock
+    assert not shaft_at_bolt_height(T.OUT_FULL)  # a 15 mm pull has the whole shaft above the bolt

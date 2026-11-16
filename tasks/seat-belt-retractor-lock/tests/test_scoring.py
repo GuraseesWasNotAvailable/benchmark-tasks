@@ -2,14 +2,12 @@
 # Copyright (c) 2026 the task authors
 """Scorer edge cases for seat-belt-retractor-lock, pure Python (no simulator). Run from the task folder: pytest -q tests
 
-The scorer is a whole-run Record (a linkkit History fed every control step) plus ladder(); every test feeds it
-synthetic pull-out traces e(t) in metres at 20 Hz.
+The scorer is a whole-run Record fed every control step (20 Hz) with the webbing pull-out e (m) and the holding hand's
+pull coordinate h (m); every test feeds it synthetic traces.
 """
 
 import pathlib
 import sys
-
-import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import linkkit as lk  # noqa: E402,F401
@@ -17,149 +15,227 @@ import task as T  # noqa: E402
 
 DT = 0.05
 FAR = {"left": 0.2, "right": 0.2}
-STILL = {"left": 0.0, "right": 0.0}
 NEAR = {"left": 0.2, "right": 0.0}
+STILL = {"left": 0.0, "right": 0.0}
 
 
-def run(segments, clear_end=1.2, home_at_end=True, lock=True):
-    """segments: list of (v m/s, seconds). Then 1.2 s standing (hands clear unless clear_end is 0)."""
-    rec = T.Record()
-    t, e = 0.0, 0.0
+class Run:
+    """Feeds the Record. The right hand holds the tongue; the webbing follows the hand unless the lock has caught."""
 
-    def feed(clear):
-        nonlocal t
-        rec.update({"e": e, "clear": clear, "tcp_speed": STILL}, t=t)
-        t += DT
+    def __init__(self, lock=True):
+        self.rec, self.t, self.e, self.h, self.lock, self.locked = T.Record(), 0.0, 0.0, 0.0, lock, False
+        self.holding = True
+        self.feed()
 
-    feed(NEAR)
-    for v, secs in segments:
-        for _ in range(round(secs / DT)):
-            if not (lock and "jerk" in rec.H.evers):  # the lock holds the webbing once it has caught
-                e = max(0.0, e + v * DT)
-            feed(NEAR)
-    if home_at_end:
-        e = 0.0
-    for _ in range(round(clear_end / DT) + 2):
-        feed(FAR if clear_end else NEAR)
-    return rec
+    def feed(self, clear=None, tcp=STILL):
+        m = {"e": self.e, "clear": clear or (NEAR if self.holding else FAR), "tcp_speed": tcp,
+             "hands": {"left": None, "right": self.h if self.holding else None}}
+        self.rec.update(m, t=self.t)
+        self.t += DT
+        if self.lock and self.rec.lock_now():
+            self.locked = True
+
+    def pull(self, steps_mm):
+        """Hand moves by each step (mm); the webbing follows unless locked."""
+        for d in steps_mm:
+            self.h += d / 1000
+            if not self.locked:
+                self.e += d / 1000
+            self.feed()
+
+    def steady(self, to=0.17, v=0.08):
+        self.pull([v * DT * 1000] * round(to / (v * DT)))
+        self.pull([0.0] * 10)
+
+    def let_go(self, home=True, clear_s=1.2):
+        self.holding, self.locked = False, False
+        if home:
+            self.e = 0.0
+        for _ in range(round(clear_s / DT) + 2):
+            self.feed(clear=FAR)
+
+    def score(self):
+        return T.ladder(self.rec)[0]
 
 
-def steady(to=0.17, v=0.08):
-    return [(v, to / v)]
+JERK = [9, 12, 15, 15, 6, 6]  # hand steps (mm): first step 0.18 m/s, then it keeps pulling 63 mm in all
 
 
-def score(rec):
-    return T.ladder(rec)[0]
+def good(lock=True):
+    r = Run(lock)
+    r.steady()
+    r.pull(JERK)
+    return r
 
 
 def test_good_run_scores_1():
-    rec = run(steady() + [(0.0, 0.5), (0.6, 0.1)])
-    assert score(rec) == 1.0
+    r = good()
+    assert r.score() == 0.5
+    r.let_go()
+    assert r.score() == 1.0
 
 
 def test_no_pull_is_0():
-    assert score(run([])) == 0.0
+    r = Run()
+    r.let_go()
+    assert r.score() == 0.0
 
 
 def test_steady_only_is_0():
-    assert score(run(steady() + [(0.0, 0.5)])) == 0.0
+    r = Run()
+    r.steady()
+    r.let_go()
+    assert r.score() == 0.0
 
 
-def test_slow_creep_to_full_travel_is_0():
-    assert score(run([(0.2, 1.5)])) == 0.0
+def test_loophole_jerk_then_stop_pulling_and_let_go_is_0():
+    r = Run()
+    r.steady()
+    r.pull([9, 12])  # a real jerk, the belt locks, then the hand stops and lets go
+    assert r.locked
+    r.let_go()
+    assert r.score() == 0.0
 
 
-def test_jerk_only_gates_to_0():
-    rec = run([(0.6, 0.2)])
-    assert score(rec) == 0.0 and "early_jerk" in rec.H.evers
+def test_loophole_belt_that_does_not_lock_is_0():
+    r = Run(lock=False)
+    r.steady()
+    r.pull(JERK)  # nothing resists: the belt runs on with the hand
+    r.let_go()
+    assert r.score() == 0.0
 
 
-def test_jerk_at_about_110mm_gates_but_after_152mm_passes():
-    assert score(run([(0.08, 1.0), (0.6, 0.1)])) == 0.0
-    assert score(run([(0.08, 1.9), (0.0, 0.3), (0.6, 0.1)])) == 1.0
+def test_runon_over_15mm_is_0_but_15mm_passes():
+    r = Run(lock=False)
+    r.steady()
+    r.pull([9, 6])  # belt moves 15 mm then the lock is made to hold
+    r.locked = True
+    r.pull([15, 15, 15])
+    r.let_go()
+    assert r.score() == 1.0
+    r = Run(lock=False)
+    r.steady()
+    r.pull([9, 7])
+    r.locked = True
+    r.pull([15, 15, 15])
+    r.let_go()
+    assert r.score() == 0.0
 
 
-def test_steady_then_early_jerk_never_recovers():
-    rec = run([(0.6, 0.1), (-0.5, 0.3)] + steady() + [(0.0, 0.5), (0.6, 0.1)])
-    assert score(rec) == 0.0
+def test_hand_must_keep_pulling_45mm():
+    r = Run()
+    r.steady()
+    r.pull([9, 12, 12, 8])  # 41 mm
+    r.let_go()
+    assert r.score() == 0.0
+    r = Run()
+    r.steady()
+    r.pull([9, 12, 12, 12])  # 45 mm
+    r.let_go()
+    assert r.score() == 1.0
 
 
-def test_speed_is_over_two_steps():
-    assert T.speed([0.0, 0.0, 0.03]) == pytest.approx(0.30)
-    assert T.speed([0.0, 0.0, 0.029]) < 0.30
-    assert T.speed([0.0]) == 0.0
+def test_early_jerk_then_wound_in_and_a_good_attempt_still_scores():
+    r = Run()
+    r.pull(JERK)  # a jerk at once: locks the webbing at about 10 mm, a wrong first try
+    r.let_go(clear_s=0.1)
+    r.holding = True
+    r.steady()
+    r.pull(JERK)
+    assert r.score() == 0.5
+    r.let_go()
+    assert r.score() == 1.0
 
 
-def test_pull_at_0_29_ms_is_not_a_jerk():
-    assert score(run(steady() + [(0.0, 0.5), (0.29, 0.4)])) == 0.0
+def test_early_jerk_alone_is_0():
+    r = Run()
+    r.pull(JERK)
+    r.let_go()
+    assert r.score() == 0.0
 
 
-def test_pull_at_0_31_ms_is_a_jerk():
-    rec = run(steady() + [(0.0, 0.5), (0.31, 0.1)])
-    assert "jerk" in rec.H.evers
+def test_jerk_at_100mm_is_early():
+    r = Run()
+    r.steady(to=0.10)
+    r.pull(JERK)
+    r.let_go()
+    assert r.score() == 0.0
 
 
-def test_slow_phase_at_0_26_ms_is_not_a_steady_pull():
-    rec = run([(0.26, 0.7), (0.0, 0.5), (0.6, 0.1)])
-    assert "slow_done" not in rec.H.evers and score(rec) == 0.0
+def test_steady_pull_alone_does_not_trip_the_lock():
+    r = Run()
+    r.steady(to=0.17, v=0.08)
+    assert not r.locked
 
 
-def test_ran_on_more_than_15mm_is_025():
-    rec = run(steady() + [(0.0, 0.5), (0.7, 0.05), (0.7, 0.05), (0.2, 0.2)], home_at_end=True, lock=False)
-    assert rec.H.values["e_jerk"] > 0
-    assert (rec.H.peaks["e_after"] - rec.H.values["e_jerk"]) * 1000 > 15
-    assert score(rec) == 0.25
+def test_gentle_pull_at_0_12_ms_is_not_a_jerk():
+    r = Run()
+    r.steady()
+    r.pull([6.0] * 20)
+    assert not r.locked and not r.rec.att["onset"]
 
 
-def test_not_wound_back_in_is_05():
-    rec = run(steady() + [(0.0, 0.5), (0.6, 0.1)], home_at_end=False)
-    assert score(rec) == 0.5
+def test_a_hand_not_holding_the_tongue_is_not_a_jerk():
+    r = Run()
+    r.steady()
+    r.holding = False
+    r.pull(JERK)
+    assert not r.rec.att["onset"]
 
 
-def test_5mm_home_tolerance():
-    rec = run(steady() + [(0.0, 0.5), (0.6, 0.1)], home_at_end=False)
-    rec.update({"e": 0.0051, "clear": FAR, "tcp_speed": STILL})
-    assert score(rec) == 0.5
+def test_not_wound_in_is_05_and_5mm_home_tolerance():
+    r = good()
+    r.let_go(home=False)
+    assert r.score() == 0.5
+    r.e = 0.0051
+    r.feed(clear=FAR)
+    assert r.score() == 0.5
+    r.e = 0.005
     for _ in range(30):
-        rec.update({"e": 0.005, "clear": FAR, "tcp_speed": STILL})
-    assert score(rec) == 1.0
+        r.feed(clear=FAR)
+    assert r.score() == 1.0
 
 
 def test_hand_29mm_from_tongue_restarts_the_release_timer():
-    rec = run(steady() + [(0.0, 0.5), (0.6, 0.1)], clear_end=0.0)
+    r = good()
+    r.let_go(clear_s=0.0)
     for _ in range(30):
-        rec.update({"e": 0.0, "clear": {"left": 0.2, "right": 0.029}, "tcp_speed": STILL})
-    assert score(rec) == 0.75
+        r.feed(clear={"left": 0.2, "right": 0.029})
+    assert r.score() == 0.75
     for _ in range(20):
-        rec.update({"e": 0.0, "clear": {"left": 0.2, "right": 0.030}, "tcp_speed": STILL})
-    assert score(rec) == 1.0
+        r.feed(clear={"left": 0.2, "right": 0.030})
+    assert r.score() == 1.0
 
 
 def test_hand_moving_6mm_s_is_not_still():
-    rec = run(steady() + [(0.0, 0.5), (0.6, 0.1)], clear_end=0.0)
+    r = good()
+    r.let_go(clear_s=0.0)
     for _ in range(40):
-        rec.update({"e": 0.0, "clear": FAR, "tcp_speed": {"left": 0.0, "right": 0.006}})
-    assert score(rec) == 0.75
+        r.feed(clear=FAR, tcp={"left": 0.0, "right": 0.006})
+    assert r.score() == 0.75
 
 
 def test_release_needs_1s():
-    rec = run(steady() + [(0.0, 0.5), (0.6, 0.1)], clear_end=0.0)
-    for _ in range(19):  # 0.95 s
-        rec.update({"e": 0.0, "clear": FAR, "tcp_speed": STILL})
-    assert score(rec) == 0.75
+    r = good()
+    r.let_go(clear_s=0.0)
+    for _ in range(16):
+        r.feed(clear=FAR)
+    assert r.score() == 0.75
 
 
-def test_reset_clears_the_record_and_nothing_else_does():
-    rec = run([(0.6, 0.2)])
-    assert score(rec) == 0.0
-    rec.update({"e": 0.0, "clear": FAR, "tcp_speed": STILL})
-    assert "early_jerk" in rec.H.evers  # returning the webbing does not clear it
-    rec.reset()
-    assert rec.last is None and not rec.H.evers
+def test_reset_clears_the_record():
+    r = good()
+    r.let_go()
+    r.rec.reset()
+    assert r.rec.last is None and r.rec.bank == 0.0 and not r.rec.att["onset"]
 
 
-def test_lock_trigger_matches_the_scorer_speed():
+def test_lock_trigger_is_an_acceleration_not_a_travel():
     rec = T.Record()
-    for k, e in enumerate([0.0, 0.0, 0.0, 0.015, 0.031]):
+    for k, e in enumerate([0.0, 0.0, 0.0, 0.0085]):  # 8.5 mm in one step from rest: 0.17 m/s, a gain of 0.17
         rec.update({"e": e, "clear": FAR, "tcp_speed": STILL}, t=k * DT)
-    assert rec.lock_now()  # (0.031 - 0.0) / 0.1 = 0.31 m/s
+    assert rec.lock_now()
+    rec = T.Record()
+    for k, e in enumerate([0.0, 0.004, 0.008, 0.012]):  # a steady 0.08 m/s
+        rec.update({"e": e, "clear": FAR, "tcp_speed": STILL}, t=k * DT)
+    assert not rec.lock_now()
